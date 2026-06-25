@@ -29,4 +29,4 @@ FusionSolar (optionnel) : réutilise fusion_solar.marin / .midi pour autoconsomm
 
 Sync cache manuelle : python scripts/sync/sync_stats_cache.py
 
-Git : dépôt à créer (nerips61/altena-stats) — secrets et cache.db hors Git.
+Git : nerips61/Altena_stats — secrets et cache.db hors Git.
