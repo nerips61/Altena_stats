@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>{{ app_title }}</title>
+  <link rel="stylesheet" href="/static/style.css?v=10">
+</head>
+<body>
+  <header>
+    <h1>{{ app_title }}</h1>
+    <p class="subtitle" id="site-label">{{ site_label }}</p>
+    <p class="purpose">Communauté énergétique Altena — partages et consommation via Leneda (SU00000049).</p>
+    {% if operational_note %}
+    <p class="subtitle operational-note">{{ operational_note }}</p>
+    {% endif %}
+  </header>
+
+  <div id="tab-stats" class="tab-panel active" role="tabpanel">
+    <section class="periods-section">
+      <h2 class="section-title">Périodes</h2>
+      <section class="controls">
+        <div class="controls-dates">
+          <label>Du <input type="date" id="start" value="{{ start_date }}"></label>
+          <label>Au <input type="date" id="end" value="{{ end_date }}"></label>
+          <button type="button" id="load-btn">Charger</button>
+        </div>
+        <div class="period-presets" role="group" aria-label="Raccourcis de période">
+          <span class="granularity-label">Période :</span>
+          <button type="button" class="preset-btn" data-preset="since-operational">Depuis mise en service</button>
+          <button type="button" class="preset-btn" data-preset="year-current">Année courante</button>
+          <button type="button" class="preset-btn" data-preset="year-past">Année passée</button>
+          <button type="button" class="preset-btn" data-preset="semester-current">Semestre courant</button>
+          <button type="button" class="preset-btn" data-preset="semester-past">Semestre passé</button>
+        </div>
+        <div class="granularity" role="group" aria-label="Granularité des graphiques">
+          <span class="granularity-label">Graphiques :</span>
+          <button type="button" class="gran-btn" data-aggregation="Day" title="Période d'au plus 2 mois">Journalier</button>
+          <button type="button" class="gran-btn" data-aggregation="Week" title="Période de moins de 5 mois">Hebdomadaire</button>
+          <button type="button" class="gran-btn active" data-aggregation="Month">Mensuel</button>
+        </div>
+        <span id="status" class="status"></span>
+      </section>
+    </section>
+
+    <section class="overview" id="overview">
+      <h2 class="section-title">Vue d’ensemble</h2>
+      <div id="overview-groups"><p class="overview-loading">Initialisation…</p></div>
+      <aside class="overview-cel-balance" id="overview-cel-balance" hidden>
+        <h3 class="overview-cel-balance-title" id="overview-cel-balance-title">Bilan CEL</h3>
+        <div class="overview-cel-balance-grid" id="overview-cel-balance-grid"></div>
+        <div class="overview-cel-balance-reliability" id="overview-cel-balance-reliability" hidden>
+          <p class="overview-cel-balance-reliability-summary" id="overview-cel-balance-reliability-summary"></p>
+          <ul class="overview-cel-balance-reliability-details" id="overview-cel-balance-reliability-details"></ul>
+        </div>
+        <ul class="overview-cel-balance-notes" id="overview-cel-balance-notes"></ul>
+      </aside>
+      <aside class="overview-rates" id="overview-rates" hidden>
+        <h3 class="overview-rates-title">Tarifs appliqués</h3>
+        <ul class="overview-rates-list" id="overview-rates-list"></ul>
+      </aside>
+      <details class="overview-notes" id="overview-notes" hidden>
+        <summary>Notes et précisions</summary>
+        <div class="overview-notes-body">
+          <p class="overview-hint" id="overview-hint" hidden></p>
+          <ul class="period-notes" id="overview-period-notes" hidden></ul>
+          <p class="overview-formula" id="overview-formula" hidden></p>
+        </div>
+      </details>
+    </section>
+
+    <section id="accounts-status" class="accounts-status" hidden></section>
+    <section id="errors" class="errors" hidden></section>
+
+    <details class="panel" id="panel-leneda" open>
+      <summary>Réseau &amp; partage (Leneda)</summary>
+      <div class="panel-body">
+        <h3 class="subsection" id="consumption-subsection">Consommation (membres)</h3>
+        <div class="chart-section" id="section-consumption" hidden>
+          <div id="consumption-host"></div>
+        </div>
+        <h3 class="subsection">Production</h3>
+        <div class="chart-section" id="section-production" hidden>
+          <div id="production-host"></div>
+        </div>
+      </div>
+    </details>
+
+    <details class="panel" id="panel-enphase" hidden>
+      <summary>Autoconsommation (calcul local)</summary>
+      <div class="panel-body">
+        <p class="panel-note" id="enphase-note" hidden></p>
+      </div>
+    </details>
+  </div>
+
+  <div id="tab-amortization" class="tab-panel" role="tabpanel" hidden{% if not amortization_enabled %} data-disabled="1"{% endif %}>
+    <p class="tab-intro">Cumul depuis la mise en service — <strong>non filtré</strong> par les dates de l’onglet Statistiques.</p>
+    <p class="amort-subsidy-note" id="amort-subsidy-note" hidden></p>
+    <div class="amort-toolbar" id="amort-toolbar">
+      <label class="amort-toolbar-label" for="amort-supplier">Fournisseur injection (MW Solar)</label>
+      <select id="amort-supplier" class="amort-supplier-select" aria-label="Fournisseur pour le remboursement injection">
+        {% for sid, profile in injection_suppliers.items() %}
+        <option value="{{ sid }}"{% if sid == default_injection_supplier %} selected{% endif %}>
+          {{ profile.label }} ({{ (profile.mwsolar_factor * 100)|round|int }}&nbsp;% MW Solar)
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <p class="panel-note" id="amortization-error" hidden></p>
+    <p class="tab-status" id="amort-status"></p>
+    <div class="amort-overview" id="amort-kpis" hidden></div>
+    <div class="amort-chart-wrap" id="amort-chart-wrap" hidden>
+      <canvas id="chart-amortization"></canvas>
+    </div>
+    <details class="panel" id="panel-amort-table" hidden>
+      <summary>Tableau mensuel détaillé</summary>
+      <div class="panel-body">
+        <div class="amort-table-wrap" id="amort-table-wrap">
+          <table class="amort-table" id="amort-table">
+            <thead>
+              <tr>
+                <th class="amort-col-period">Période</th>
+                <th>Autocons. €</th>
+                <th title="Partage AC1 + CEL (surplus après autoconsommation)">Partages €</th>
+                <th>Injection €</th>
+                <th>Total €</th>
+                <th>Cumul €</th>
+                <th class="amort-col-rate" title="MW Solar Netztransparenz × coefficient fournisseur">Taux inj.</th>
+              </tr>
+            </thead>
+            <tbody id="amort-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+    <div class="amort-notes" id="amort-notes" hidden>
+      <p class="amort-formula" id="amort-formula" hidden></p>
+      <p class="amort-formula amort-priority" id="amort-priority-note" hidden></p>
+      <p class="amort-formula" id="amort-pre-leneda" hidden></p>
+      <div id="amort-extra-notes"></div>
+    </div>
+  </div>
+
+  <script src="/static/embedded.js" defer></script>
+  <script src="/static/chart.umd.min.js?v=1" defer onerror="window.__chartFailed=true"></script>
+  <script defer>
+    const INITIAL_VIEW = {{ initial_view|default('stats')|tojson }};
+    const AMORTIZATION_ENABLED = {{ amortization_enabled|default(false)|tojson }};
+    const OPERATIONAL_FROM = {{ operational_from|default('2026-06-12')|tojson }};
+    const charts = {};
+    let amortChart = null;
+    let chartAggregation = 'Month';
+    let loadGeneration = 0;
+    let loadAbort = null;
+    let amortLoadGeneration = 0;
+    let amortAbort = null;
+    let activePreset = null;
+    let amortLoaded = false;
+    let amortLoadedSupplier = null;
+
+    const AGG_LABELS = { Day: 'journalier', Week: 'hebdomadaire', Month: 'mensuel' };
+    const GRAN_DAY_MAX_DAYS = 62;
+    const GRAN_WEEK_MAX_DAYS = 153;
+    const GRAN_MONTH_DEFAULT_MIN_DAYS = 122;
+
+    function periodSpanDays(startStr, endStr) {
+      if (!startStr || !endStr) return Infinity;
+      const start = new Date(`${startStr}T12:00:00`);
+      const end = new Date(`${endStr}T12:00:00`);
+      if (Number.isNaN(start) || Number.isNaN(end) || end < start) return Infinity;
+      return Math.round((end - start) / 86400000) + 1;
+    }
+
+    function granularityAllowed(level, spanDays) {
+      if (level === 'Day') return spanDays <= GRAN_DAY_MAX_DAYS;
+      if (level === 'Week') return spanDays < GRAN_WEEK_MAX_DAYS;
+      return true;
+    }
+
+    function defaultGranularity(spanDays) {
+      if (spanDays >= GRAN_MONTH_DEFAULT_MIN_DAYS) return 'Month';
+      if (spanDays > GRAN_DAY_MAX_DAYS) return 'Week';
+      return 'Day';
+    }
+
+    function syncGranularityButtons(applyDefault = false) {
+      const start = document.getElementById('start').value;
+      const end = document.getElementById('end').value;
+      const span = periodSpanDays(start, end);
+      document.querySelectorAll('.gran-btn').forEach(btn => {
+        const level = btn.dataset.aggregation;
+        btn.hidden = false;
+        btn.disabled = !granularityAllowed(level, span);
+      });
+      if (applyDefault || !granularityAllowed(chartAggregation, span)) {
+        setAggregation(defaultGranularity(span));
+      }
+    }
+
+    function fmtKwh(n) {
+      if (n == null || Number.isNaN(Number(n))) return '—';
+      return Math.round(Number(n)).toLocaleString('fr-LU');
+    }
+
+    function fmtKwhVal(n) {
+      const v = fmtKwh(n);
+      return v === '—' ? v : `${v}<span class="unit"> kWh</span>`;
+    }
+
+    function fmtEurNum(n) {
+      if (n == null || Number.isNaN(Number(n))) return '—';
+      return Number(n).toLocaleString('fr-LU', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function fmtEur(n) {
+      const num = fmtEurNum(n);
+      return num === '—' ? num : `${num}<span class="unit"> €</span>`;
+    }
+
+    /** Chart.js axis ticks — plain text only (no HTML). */
+    function fmtEurPlain(n) {
+      const num = fmtEurNum(n);
+      return num === '—' ? num : `${num} €`;
+    }
+
+    function isoDate(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function getAggregation() {
+      return chartAggregation;
+    }
+
+    function setAggregation(level) {
+      chartAggregation = level;
+      document.querySelectorAll('.gran-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.aggregation === level);
+      });
+    }
+
+    function setActiveTab(tab) {
+      const isStats = tab === 'stats';
+      document.getElementById('tab-stats').classList.toggle('active', isStats);
+      document.getElementById('tab-stats').hidden = !isStats;
+      document.getElementById('tab-amortization').classList.toggle('active', !isStats);
+      document.getElementById('tab-amortization').hidden = isStats;
+      if (!isStats && !amortLoaded) loadAmortization();
+    }
+
+    function currentView() {
+      if (!AMORTIZATION_ENABLED) return 'stats';
+      if (INITIAL_VIEW === 'amort') return 'amort';
+      const view = new URLSearchParams(window.location.search).get('view');
+      if (view === 'amort') return 'amort';
+      if (location.pathname.endsWith('/amort')) return 'amort';
+      if (location.hash === '#amort') return 'amort';
+      return 'stats';
+    }
+
+    function applyRouteFromHash() {
+      setActiveTab(currentView() === 'amort' ? 'amort' : 'stats');
+    }
+
+    function setStatus(msg, isError) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = 'status' + (isError ? ' error' : '');
+    }
+
+    function setAmortStatus(msg, isError) {
+      const el = document.getElementById('amort-status');
+      el.textContent = msg;
+      el.className = 'tab-status' + (isError ? ' error' : '');
+    }
+
+    function parseIsoDateLocal(s) {
+      if (!s) return null;
+      const parts = String(s).slice(0, 10).split('-').map(Number);
+      if (parts.length !== 3 || parts.some(n => Number.isNaN(n))) return null;
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+
+    function destroyStatCharts() {
+      Object.values(charts).forEach(c => {
+        try { c.destroy(); } catch (_) { /* noop */ }
+      });
+      for (const k of Object.keys(charts)) delete charts[k];
+      if (typeof Chart === 'undefined') return;
+      document.querySelectorAll('#tab-stats .chart-card canvas').forEach(canvas => {
+        const existing = Chart.getChart(canvas);
+        if (existing) existing.destroy();
+      });
+    }
+
+    function destroyAmortChart() {
+      if (amortChart) {
+        amortChart.destroy();
+        amortChart = null;
+      }
+      if (typeof Chart === 'undefined') return;
+      const ctx = document.getElementById('chart-amortization');
+      if (ctx) {
+        const existing = Chart.getChart(ctx);
+        if (existing) existing.destroy();
+      }
+    }
+
+    function clearChartSection(sectionEl) {
+      if (!sectionEl) return;
+      const host = sectionEl.querySelector('#consumption-host, #production-host');
+      if (host) host.innerHTML = '';
+      sectionEl.hidden = true;
+    }
+
+    function mergeSeriesTimeline(seriesList) {
+      const labelSet = new Set();
+      seriesList.forEach(s => {
+        (s.points || []).forEach(p => labelSet.add(p.date));
+      });
+      const rawLabels = Array.from(labelSet).sort();
+      const datasets = seriesList.map(s => {
+        const byDate = Object.fromEntries((s.points || []).map(p => [p.date, p.value]));
+        return {
+          series: s,
+          values: rawLabels.map(d => byDate[d] ?? null),
+        };
+      });
+      return { rawLabels, datasets };
+    }
+
+    function chartGroupTotalKwh(seriesList) {
+      return seriesList.reduce((sum, s) => sum + Number(s.total || 0), 0);
+    }
+
+    function renderChartGroups(sectionEl, groups, aggregation, hostId) {
+      if (!sectionEl) return false;
+      clearChartSection(sectionEl);
+      if (!groups || !groups.length) return false;
+
+      const host = sectionEl.querySelector(hostId);
+      if (!host) return false;
+
+      let any = false;
+      groups.forEach(group => {
+        if (!group.series || !group.series.length) return;
+        const block = document.createElement('div');
+        block.className = 'chart-roof-block';
+        if (group.layout === 'wide') {
+          block.classList.add('chart-roof-block-wide');
+        } else if (group.layout === 'half') {
+          block.classList.add('chart-roof-block-half');
+        }
+        const title = document.createElement('h4');
+        title.className = 'chart-roof-title';
+        title.textContent = group.title;
+        const grid = document.createElement('div');
+        grid.className = 'chart-grid chart-grid-single';
+        grid.dataset.section = hostId === '#production-host' ? 'production' : 'consumption';
+        block.appendChild(title);
+        block.appendChild(grid);
+        host.appendChild(block);
+        makeGroupChartCard(grid, group, aggregation);
+        any = true;
+      });
+      sectionEl.hidden = !any;
+      return any;
+    }
+
+    function makeGroupChartCard(container, group, aggregation) {
+      const seriesList = group.series || [];
+      const chartId = group.id || 'chart-group';
+      const { rawLabels, datasets } = mergeSeriesTimeline(seriesList);
+      const labels = rawLabels.map(l => formatXLabel(l, aggregation));
+      const xScale = buildXScale(labels, aggregation);
+      const multi = Boolean(group.multi) && seriesList.length > 1;
+      const useGroupedBar = multi && seriesList.length >= 3;
+      const totalKwh = chartGroupTotalKwh(seriesList);
+
+      const card = document.createElement('article');
+      card.className = 'chart-card chart-card-group';
+      if (xScale.plan.rotation >= 45) card.classList.add('chart-tilted-x');
+      if (xScale.plan.rotation >= 90) card.classList.add('chart-dense-x');
+      if (multi) card.classList.add('chart-card-multi');
+      const wrapClass = multi ? 'chart-canvas-wrap chart-canvas-wrap-multi' : 'chart-canvas-wrap';
+      const breakdown = group.meta_breakdown
+        ? ` · ${escapeHtml(group.meta_breakdown)}`
+        : '';
+      card.innerHTML = `
+        <p class="meta">Total période <strong>${fmtKwh(totalKwh)}</strong> kWh${breakdown}</p>
+        <div class="${wrapClass}">
+          <canvas id="chart-${chartId}"></canvas>
+        </div>
+      `;
+      container.appendChild(card);
+
+      if (typeof Chart === 'undefined') {
+        const note = document.createElement('p');
+        note.className = 'panel-note';
+        note.textContent = 'Graphique indisponible (Chart.js non chargé — connexion Internet ?).';
+        card.appendChild(note);
+        return;
+      }
+
+      const ctx = document.getElementById(`chart-${chartId}`);
+      const existing = Chart.getChart(ctx);
+      if (existing) existing.destroy();
+
+      const chartDatasets = datasets.map(({ series, values }) => {
+        const label = series.chart_label || series.label || series.id;
+        if (multi && useGroupedBar) {
+          return {
+            label,
+            data: values,
+            backgroundColor: series.color + 'cc',
+            borderColor: series.color,
+            borderWidth: 1,
+            borderRadius: 2,
+          };
+        }
+        if (multi) {
+          return {
+            label,
+            data: values,
+            borderColor: series.color,
+            backgroundColor: series.color + '33',
+            borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            tension: 0.2,
+            spanGaps: true,
+          };
+        }
+        const byDate = Object.fromEntries((series.points || []).map(p => [p.date, p]));
+        return {
+          label,
+          data: values,
+          backgroundColor: rawLabels.map(d => {
+            const p = byDate[d];
+            if (!p) return series.color + '20';
+            if (p.derived) return series.color + '99';
+            if (p.empty) return series.color + '40';
+            return series.color;
+          }),
+          borderRadius: 4,
+        };
+      });
+
+      charts[chartId] = new Chart(ctx, {
+        type: useGroupedBar ? 'bar' : (multi ? 'line' : 'bar'),
+        data: { labels, datasets: chartDatasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { bottom: xScale.plan.bottomPad } },
+          plugins: {
+            legend: {
+              display: multi,
+              position: 'bottom',
+              labels: {
+                boxWidth: 10,
+                padding: 10,
+                font: { size: 11 },
+              },
+            },
+            tooltip: {
+              callbacks: {
+                title(items) {
+                  const i = items[0] && items[0].dataIndex;
+                  return (i != null && rawLabels[i]) ? rawLabels[i] : (items[0] && items[0].label) || '';
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: xScale.ticks,
+              grid: { display: false },
+            },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'kWh' },
+              ticks: { callback: v => fmtKwh(v) },
+            },
+          },
+        },
+      });
+    }
+
+    function clearStatChartAreas() {
+      destroyStatCharts();
+      clearChartSection(document.getElementById('section-consumption'));
+      clearChartSection(document.getElementById('section-production'));
+      const consSub = document.getElementById('consumption-subsection');
+      if (consSub) consSub.hidden = false;
+      const panelEnphase = document.getElementById('panel-enphase');
+      if (panelEnphase) panelEnphase.hidden = true;
+    }
+
+    function setLoading(loading) {
+      const btn = document.getElementById('load-btn');
+      btn.disabled = loading;
+      btn.setAttribute('aria-busy', loading ? 'true' : 'false');
+      if (loading) {
+        document.querySelectorAll('.gran-btn, .preset-btn').forEach(b => { b.disabled = true; });
+      } else {
+        document.querySelectorAll('.preset-btn').forEach(b => { b.disabled = false; });
+        syncGranularityButtons(false);
+      }
+    }
+
+    function setPresetActive(preset) {
+      activePreset = preset;
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.preset === preset);
+      });
+    }
+
+    function applyPeriodPreset(preset) {
+      const today = new Date();
+      const y = today.getFullYear();
+      const m = today.getMonth();
+      let start;
+      let end;
+
+      switch (preset) {
+        case 'year-current':
+          start = new Date(y, 0, 1);
+          end = today;
+          break;
+        case 'year-past':
+          start = new Date(y - 1, 0, 1);
+          end = new Date(y - 1, 11, 31);
+          break;
+        case 'semester-current':
+          if (m < 6) {
+            start = new Date(y, 0, 1);
+            end = today;
+          } else {
+            start = new Date(y, 6, 1);
+            end = today;
+          }
+          break;
+        case 'semester-past':
+          if (m < 6) {
+            start = new Date(y - 1, 6, 1);
+            end = new Date(y - 1, 11, 31);
+          } else {
+            start = new Date(y, 0, 1);
+            end = new Date(y, 5, 30);
+          }
+          break;
+        case 'since-operational': {
+          const op = parseIsoDateLocal(OPERATIONAL_FROM);
+          if (!op) {
+            setStatus('Date de mise en service invalide dans config.json', true);
+            return;
+          }
+          start = op;
+          end = today;
+          break;
+        }
+        default:
+          return;
+      }
+
+      document.getElementById('start').value = isoDate(start);
+      document.getElementById('end').value = isoDate(end);
+      setPresetActive(preset);
+      syncGranularityButtons(true);
+      loadStats();
+    }
+
+    const MONTH_FR_SHORT = [
+      'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
+      'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
+    ];
+
+    function formatXLabel(label, aggregation) {
+      const s = String(label);
+      const ym = /^(\d{4})-(\d{2})$/.exec(s);
+      if (aggregation === 'Month' && ym) {
+        const mi = parseInt(ym[2], 10) - 1;
+        if (mi >= 0 && mi < 12) {
+          return `${MONTH_FR_SHORT[mi]} ${ym[1].slice(2)}`;
+        }
+      }
+      if (aggregation === 'Week' && /^\d{4}-\d{2}-\d{2}/.test(s)) {
+        return s.slice(5, 10);
+      }
+      return s;
+    }
+
+    function planXAxis(labels, aggregation) {
+      const n = labels.length;
+      if (n === 0) return { rotation: 0, showEvery: 1, bottomPad: 4, n: 0 };
+
+      const TARGET_TICKS = 12;
+      const maxLen = Math.max(...labels.map(l => String(l).length), 1);
+
+      if (aggregation === 'Month') {
+        const rotation = n >= 2 ? 45 : 0;
+        const showEvery = n > 14 ? Math.ceil(n / TARGET_TICKS) : 1;
+        return {
+          rotation,
+          showEvery,
+          bottomPad: rotation ? 36 : 10,
+          n,
+        };
+      }
+
+      if (aggregation === 'Week') {
+        const rotation = n > 4 ? 45 : 0;
+        const showEvery = n > TARGET_TICKS ? Math.ceil(n / TARGET_TICKS) : 1;
+        return {
+          rotation,
+          showEvery,
+          bottomPad: rotation ? 32 : 8,
+          n,
+        };
+      }
+
+      const slotBudget = 36;
+      const cost0 = n * maxLen * 0.55;
+      const cost45 = n * maxLen * 0.38;
+      let rotation = 0;
+      if (cost0 <= slotBudget && n <= 5) rotation = 0;
+      else if (cost45 <= slotBudget * 2.5 || n <= 24) rotation = 45;
+      else rotation = 90;
+      let showEvery = 1;
+      if (n > TARGET_TICKS) showEvery = Math.ceil(n / TARGET_TICKS);
+      if (rotation === 90 && showEvery < 2 && n > 18) showEvery = 2;
+      const bottomPad = rotation === 90 ? 52 : rotation === 45 ? 36 : 8;
+      return { rotation, showEvery, bottomPad, n };
+    }
+
+    function buildXScale(labels, aggregation) {
+      const plan = planXAxis(labels, aggregation);
+      return {
+        plan,
+        ticks: {
+          maxRotation: plan.rotation,
+          minRotation: plan.rotation,
+          autoSkip: false,
+          maxTicksLimit: plan.n,
+          callback(_value, index) {
+            if (index >= labels.length) return '';
+            if (index % plan.showEvery !== 0) return '';
+            return labels[index];
+          },
+        },
+      };
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderAmortization(am) {
+      const errEl = document.getElementById('amortization-error');
+      const kpiEl = document.getElementById('amort-kpis');
+      const wrap = document.getElementById('amort-chart-wrap');
+      const tablePanel = document.getElementById('panel-amort-table');
+      const notesEl = document.getElementById('amort-notes');
+      const tbody = document.getElementById('amort-table-body');
+      const prio = document.getElementById('amort-priority-note');
+      const preLenedaEl = document.getElementById('amort-pre-leneda');
+      const extraNotesEl = document.getElementById('amort-extra-notes');
+      if (prio) prio.hidden = true;
+      if (preLenedaEl) preLenedaEl.hidden = true;
+      if (extraNotesEl) extraNotesEl.innerHTML = '';
+
+      if (!am || !am.enabled) {
+        errEl.hidden = true;
+        kpiEl.hidden = true;
+        wrap.hidden = true;
+        if (tablePanel) tablePanel.hidden = true;
+        if (notesEl) notesEl.hidden = true;
+        return;
+      }
+      if (am.error) {
+        errEl.textContent = am.error;
+        errEl.hidden = false;
+        kpiEl.hidden = true;
+        wrap.hidden = true;
+        if (tablePanel) tablePanel.hidden = true;
+        if (notesEl) notesEl.hidden = true;
+        return;
+      }
+      errEl.hidden = true;
+
+      const L = am.ui_labels || {};
+      const pre = am.pre_leneda || {};
+      const recoveredPct = Math.round(am.recovered_pct || 0);
+      const paybackSub = am.payback_reached
+        ? 'Objectif atteint'
+        : (am.payback_year_estimate
+          ? `Récupération ~${am.payback_year_estimate}`
+          : 'Horizon en cours');
+
+      kpiEl.innerHTML = '';
+      const block = document.createElement('div');
+      block.className = 'amort-overview-block';
+
+      block.appendChild(buildAmortEquationRow(
+        [
+          {
+            label: L.investment_net || 'Investissement net',
+            value: am.capex_net_eur,
+          },
+          {
+            label: 'Bénéfice cumulé',
+            labelLine2: 'Marin-Midi',
+            value: am.total_benefit_eur,
+            emphasis: true,
+            pct: recoveredPct,
+          },
+          {
+            label: L.remaining || 'Reste à récupérer',
+            value: am.remaining_eur,
+            sub: paybackSub,
+          },
+        ],
+        ['=', '+'],
+        'amort-equation-main',
+      ));
+
+      const progress = document.createElement('div');
+      progress.className = 'amort-progress';
+      progress.title = `${L.recovered_pct || 'Part récupérée'} : ${recoveredPct} %`;
+      const bar = document.createElement('div');
+      bar.className = 'amort-progress-bar';
+      const fill = document.createElement('div');
+      fill.className = 'amort-progress-fill';
+      fill.style.width = `${Math.min(100, Math.max(0, recoveredPct))}%`;
+      bar.appendChild(fill);
+      progress.appendChild(bar);
+      const progressLabel = document.createElement('span');
+      progressLabel.className = 'amort-progress-label';
+      progressLabel.textContent = am.payback_reached
+        ? `${recoveredPct} % récupéré — investissement net amorti`
+        : `${recoveredPct} % récupéré${am.payback_year_estimate ? ` — objectif ~${am.payback_year_estimate}` : ''}`;
+      progress.appendChild(progressLabel);
+      block.appendChild(progress);
+
+      kpiEl.appendChild(block);
+      kpiEl.hidden = false;
+
+      const simEl = document.getElementById('amort-subsidy-note');
+      const sim = am.subsidy_simulation;
+      if (simEl && sim) {
+        const pct = Math.round((sim.total_subsidy_pct || 0) * 1000) / 10;
+        simEl.innerHTML =
+          `Investissement brut ${fmtEur(am.capex_gross_eur)} (2 × ${fmtEur(sim.per_installation_gross_eur)}) — `
+          + `subventions simulées ${pct} % (${fmtEur(am.subsidy_eur)}) — net ${fmtEur(am.capex_net_eur)}. `
+          + escapeHtml(sim.note || '');
+        simEl.hidden = false;
+      } else if (simEl) {
+        simEl.hidden = true;
+      }
+      const inj = am.injection || {};
+      const supplierSel = document.getElementById('amort-supplier');
+      if (supplierSel && inj.supplier_id) {
+        supplierSel.value = inj.supplier_id;
+      }
+
+      if (am.chart && am.chart.labels && am.chart.labels.length) {
+        wrap.hidden = false;
+        destroyAmortChart();
+        const ctx = document.getElementById('chart-amortization');
+        const investLine = am.chart.capex_net_eur;
+        const investLabel = (am.ui_labels && am.ui_labels.chart_investment_line)
+          || 'Investissement net';
+        amortChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: am.chart.labels,
+            datasets: [
+              {
+                label: 'Bénéfice cumulé',
+                data: am.chart.cumulative_eur,
+                borderColor: '#0d9488',
+                backgroundColor: '#0d948820',
+                fill: true,
+                tension: 0.15,
+              },
+              {
+                label: investLabel,
+                data: am.chart.labels.map(() => investLine),
+                borderColor: '#dc2626',
+                borderDash: [6, 4],
+                pointRadius: 0,
+                fill: false,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: true, position: 'bottom' } },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: '€' },
+                ticks: { callback: v => fmtEurPlain(v) },
+              },
+            },
+          },
+        });
+      } else {
+        wrap.hidden = true;
+      }
+
+      tbody.innerHTML = '';
+
+      function fmtInjRate(row) {
+        if (row == null || row.injection_eur_per_kwh == null) return '—';
+        const eur = Number(row.injection_eur_per_kwh);
+        if (row.mw_solar_ct_per_kwh != null) {
+          return `${Number(row.mw_solar_ct_per_kwh).toFixed(2)} ct → ${eur.toFixed(3)} €`;
+        }
+        return `${eur.toFixed(3)} €*`;
+      }
+
+      if (pre.period_label && Number(pre.total_eur) > 0) {
+        const preCumul = (am.chart && am.chart.cumulative_eur && am.chart.cumulative_eur[0]) != null
+          ? am.chart.cumulative_eur[0]
+          : pre.total_eur;
+        const tr = document.createElement('tr');
+        tr.className = 'amort-row-pre';
+        tr.innerHTML = `
+          <td class="amort-col-period">${pre.period_label}</td>
+          <td>${fmtEur(pre.autoconsumption_eur)}</td>
+          <td class="amort-muted">—</td>
+          <td>${fmtEur(pre.injection_eur)}</td>
+          <td>${fmtEur(pre.total_eur)}</td>
+          <td>${fmtEur(preCumul)}</td>
+          <td class="amort-col-rate amort-muted">tableur</td>`;
+        tbody.appendChild(tr);
+      }
+
+      (am.monthly || []).forEach(row => {
+        let cumul = null;
+        if (am.chart && am.chart.labels) {
+          const idx = am.chart.labels.indexOf(row.label);
+          if (idx >= 0) cumul = am.chart.cumulative_eur[idx];
+        }
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="amort-col-period">${row.label}</td>
+          <td>${fmtEur(row.autoconsumption_eur)}</td>
+          <td>${fmtEur(row.community_eur)}</td>
+          <td>${fmtEur(row.export_eur)}</td>
+          <td>${fmtEur(row.total_eur)}</td>
+          <td>${cumul != null ? fmtEur(cumul) : '—'}</td>
+          <td class="amort-col-rate">${fmtInjRate(row)}</td>`;
+        tbody.appendChild(tr);
+      });
+
+      const hasRows = tbody.children.length > 0;
+      if (tablePanel) tablePanel.hidden = !hasRows;
+
+      const formulaEl = document.getElementById('amort-formula');
+      if (formulaEl) {
+        formulaEl.textContent = am.formula || '';
+        formulaEl.hidden = !am.formula;
+      }
+      if (am.energy_priority_note && prio) {
+        prio.textContent = am.energy_priority_note;
+        prio.hidden = false;
+      }
+      if (preLenedaEl && am.pre_leneda_formula) {
+        preLenedaEl.textContent = am.pre_leneda_formula;
+        preLenedaEl.hidden = false;
+      }
+      if (extraNotesEl) {
+        if (hasRows && (am.injection && (am.injection.mwsolar_months_missing || []).length)) {
+          const note = document.createElement('p');
+          note.className = 'amort-formula';
+          const fb = Number(am.injection.injection_fallback_eur_per_kwh || 0).toFixed(3);
+          note.textContent = `* Taux de repli (${fb} €/kWh) — MW Solar pas encore en cache pour ce mois.`;
+          extraNotesEl.appendChild(note);
+        }
+      }
+      if (notesEl) {
+        const hasNotes = (formulaEl && !formulaEl.hidden)
+          || (prio && !prio.hidden)
+          || (preLenedaEl && !preLenedaEl.hidden)
+          || (extraNotesEl && extraNotesEl.children.length > 0);
+        notesEl.hidden = !hasNotes;
+      }
+    }
+
+    function formatOverviewEurHtml(item) {
+      const small = Boolean(item.small);
+      if (item.eur_mode === 'member_cel') {
+        const sup = item.supplier_equiv_eur;
+        const cel = item.cel_due_eur;
+        const save = item.savings_eur;
+        if (sup == null && cel == null && save == null) return '';
+        if (small) {
+          if (sup != null && cel != null && save != null) {
+            return `<div class="summary-eur-split summary-eur-split-compact">
+              <span class="summary-eur-equation">${fmtEurNum(sup)} € fourn. − ${fmtEurNum(cel)} € CEL = <strong class="summary-eur-avoided">${fmtEurNum(save)} €</strong> économ.</span>
+            </div>`;
+          }
+          if (save != null) {
+            return `<div class="summary-eur-split summary-eur-split-compact">
+              <span class="summary-eur-avoided">${fmtEurNum(save)} € économ.</span>
+            </div>`;
+          }
+          return '';
+        }
+        if (sup != null && cel != null && save != null) {
+          return `<div class="summary-eur-split">
+            <span class="summary-eur-line summary-eur-equation">
+              ${fmtEurNum(sup)} € fournisseur − ${fmtEurNum(cel)} € CEL =
+              <strong class="summary-eur-avoided">${fmtEurNum(save)} €</strong> économ.
+            </span>
+          </div>`;
+        }
+        return '';
+      }
+      if (item.eur_mode === 'producer_share') {
+        const cel = item.cel_due_eur;
+        const inj = item.injection_equiv_eur;
+        const gain = item.gain_eur;
+        if (cel == null && inj == null && gain == null) return '';
+        if (small) {
+          if (cel != null && inj != null && gain != null) {
+            return `<div class="summary-eur-split summary-eur-split-compact">
+              <span class="summary-eur-equation">${fmtEurNum(cel)} € CEL − ${fmtEurNum(inj)} € inj. = <strong class="summary-eur-gain">${fmtEurNum(gain)} €</strong> gain</span>
+            </div>`;
+          }
+          return '';
+        }
+        if (cel != null && inj != null && gain != null) {
+          return `<div class="summary-eur-split">
+            <span class="summary-eur-line summary-eur-equation">
+              ${fmtEurNum(cel)} € CEL − ${fmtEurNum(inj)} € inj. =
+              <strong class="summary-eur-gain">${fmtEurNum(gain)} €</strong> gain
+            </span>
+          </div>`;
+        }
+        return '';
+      }
+      if (item.eur != null) {
+        const label = item.eur_label
+          ? `<span class="summary-eur-label">${escapeHtml(item.eur_label)}</span>`
+          : '';
+        return `<span class="summary-eur">${label}${fmtEur(item.eur)}</span>`;
+      }
+      return '';
+    }
+
+    function makeOverviewCard(item) {
+      const card = document.createElement('div');
+      const small = Boolean(item.small);
+      card.className = 'summary-card' + (small ? ' summary-card-sm' : '');
+      if (item.computed) {
+        card.classList.add('summary-card-computed');
+        card.title = 'Somme calculée (Marin + Midi)';
+      }
+      const pct = item.pct != null
+        ? `<span class="summary-pct">${item.pct} %</span>`
+        : '';
+      const eurHtml = formatOverviewEurHtml(item);
+      card.innerHTML = `
+        <span class="summary-label">${escapeHtml(item.label)}</span>
+        <span class="summary-value">${fmtKwhVal(item.total)}</span>
+        ${eurHtml}
+        ${pct}`;
+      return card;
+    }
+
+    function makeAmortCard(item) {
+      const card = document.createElement('div');
+      card.className = 'summary-card amort-card' + (item.small ? ' amort-card-sm' : '');
+      if (item.emphasis) card.classList.add('amort-card-emphasis');
+      let extra = '';
+      if (item.sub) {
+        extra += `<span class="summary-extra amort-card-sub">${item.sub}</span>`;
+      }
+      if (item.pct != null) {
+        extra += `<span class="summary-pct">${item.pct} %</span>`;
+      }
+      const labelHtml = item.labelLine2
+        ? `${escapeHtml(item.label)}<br><span class="amort-card-label-sub">${escapeHtml(item.labelLine2)}</span>`
+        : escapeHtml(item.label);
+      card.innerHTML = `
+        <span class="summary-label">${labelHtml}</span>
+        <span class="summary-value">${fmtEur(item.value)}</span>
+        ${extra}`;
+      return card;
+    }
+
+    function buildAmortEquationRow(items, operators, rowClass) {
+      const row = document.createElement('div');
+      row.className = 'equation-row' + (rowClass ? ` ${rowClass}` : '');
+      items.forEach((item, i) => {
+        if (i > 0) {
+          const op = document.createElement('span');
+          op.className = 'eq-op' + (item.small ? ' eq-op-sm' : '');
+          op.textContent = operators[i - 1] || '+';
+          row.appendChild(op);
+        }
+        row.appendChild(makeAmortCard(item));
+      });
+      return row;
+    }
+
+    function buildEquationRow(rowDef, cards) {
+      const byId = Object.fromEntries(cards.map(c => [c.id, c]));
+      const row = document.createElement('div');
+      row.className = 'equation-row';
+      (rowDef.ids || []).forEach((id, i) => {
+        const t = byId[id];
+        if (!t) return;
+        if (i > 0) {
+          const op = document.createElement('span');
+          op.className = 'eq-op';
+          op.textContent = rowDef.operators[i - 1] || '+';
+          row.appendChild(op);
+        }
+        row.appendChild(makeOverviewCard(t));
+      });
+      return row;
+    }
+
+    function renderAccountsStatus(lenedaAccounts) {
+      const el = document.getElementById('accounts-status');
+      const parts = [];
+      if (lenedaAccounts) {
+        Object.entries(lenedaAccounts).forEach(([id, st]) => {
+          if (id.startsWith('_')) return;
+          parts.push(
+            st.configured
+              ? `Leneda ${id} : OK`
+              : `Leneda ${id} : ${st.error || 'non configuré'}`
+          );
+        });
+      }
+      const missing = parts.some(p => p.includes('non configuré') || p.includes('Compléter'));
+      if (!parts.length) {
+        el.hidden = true;
+        return;
+      }
+      el.innerHTML = '<p><strong>Accès :</strong> ' + parts.join(' · ') + '</p>';
+      el.className = missing ? 'accounts-status accounts-status-warn' : 'accounts-status';
+      el.hidden = false;
+    }
+
+    function fmtCt(n) {
+      if (n == null || Number.isNaN(Number(n))) return '—';
+      return Number(n).toLocaleString('fr-LU', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      });
+    }
+
+    function renderCelBalance(celBalance) {
+      const box = document.getElementById('overview-cel-balance');
+      const grid = document.getElementById('overview-cel-balance-grid');
+      const notesEl = document.getElementById('overview-cel-balance-notes');
+      const relBox = document.getElementById('overview-cel-balance-reliability');
+      const relSummary = document.getElementById('overview-cel-balance-reliability-summary');
+      const relDetails = document.getElementById('overview-cel-balance-reliability-details');
+      const titleEl = document.getElementById('overview-cel-balance-title');
+      if (!box || !grid || !notesEl) return;
+
+      if (!celBalance || !celBalance.metrics || !celBalance.metrics.length) {
+        box.hidden = true;
+        grid.innerHTML = '';
+        notesEl.innerHTML = '';
+        if (relBox) relBox.hidden = true;
+        return;
+      }
+
+      if (titleEl && celBalance.title) {
+        titleEl.textContent = celBalance.title;
+      }
+
+      grid.innerHTML = '';
+      celBalance.metrics.forEach(metric => {
+        const card = document.createElement('div');
+        card.className = 'overview-cel-balance-metric';
+        if (metric.hint) card.title = metric.hint;
+        const valueHtml = metric.kwh != null
+          ? `${fmtKwhVal(metric.kwh)} kWh`
+          : '—';
+        const pctHtml = metric.share_pct != null
+          ? `<span class="overview-cel-balance-pct">${metric.share_pct} %</span>`
+          : '';
+        card.innerHTML = `
+          <span class="overview-cel-balance-label">${escapeHtml(metric.label)}</span>
+          <span class="overview-cel-balance-value">${valueHtml}</span>
+          ${pctHtml}`;
+        grid.appendChild(card);
+      });
+
+      notesEl.innerHTML = '';
+      (celBalance.notes || []).forEach(note => {
+        const li = document.createElement('li');
+        li.textContent = note;
+        notesEl.appendChild(li);
+      });
+
+      if (relBox && relSummary && relDetails) {
+        const rel = celBalance.reliability;
+        if (rel && (rel.summary || (rel.details && rel.details.length))) {
+          relBox.hidden = false;
+          relBox.className = 'overview-cel-balance-reliability'
+            + (rel.level ? ` overview-cel-balance-reliability--${rel.level}` : '');
+          relSummary.textContent = rel.title
+            ? `${rel.title} — ${rel.summary || ''}`
+            : (rel.summary || '');
+          relDetails.innerHTML = '';
+          (rel.details || []).forEach(line => {
+            const li = document.createElement('li');
+            li.textContent = line;
+            relDetails.appendChild(li);
+          });
+        } else {
+          relBox.hidden = true;
+        }
+      }
+
+      box.hidden = false;
+    }
+
+    function renderAppliedRates(rates) {
+      const box = document.getElementById('overview-rates');
+      const list = document.getElementById('overview-rates-list');
+      if (!box || !list) return;
+      if (!rates) {
+        box.hidden = true;
+        list.innerHTML = '';
+        return;
+      }
+      const items = [];
+      if (rates.cel_ct_per_kwh != null) {
+        items.push(
+          `<li>${escapeHtml(rates.cel_label || 'Partage CEL')} : `
+          + `<strong>${fmtCt(rates.cel_ct_per_kwh)}</strong> cts/kWh</li>`
+        );
+      }
+      if (rates.injection_ct_per_kwh != null) {
+        items.push(
+          `<li>${escapeHtml(rates.injection_label || 'Injection')} : `
+          + `<strong>${fmtCt(rates.injection_ct_per_kwh)}</strong> cts/kWh</li>`
+        );
+      }
+      if (!items.length) {
+        box.hidden = true;
+        list.innerHTML = '';
+        return;
+      }
+      list.innerHTML = items.join('');
+      box.hidden = false;
+    }
+
+    function showOverviewLoading(message) {
+      const root = document.getElementById('overview-groups');
+      const ov = document.getElementById('overview');
+      ov.hidden = false;
+      renderAppliedRates(null);
+      renderCelBalance(null);
+      document.getElementById('overview-hint').hidden = true;
+      document.getElementById('overview-period-notes').hidden = true;
+      document.getElementById('overview-formula').hidden = true;
+      const notesWrap = document.getElementById('overview-notes');
+      if (notesWrap) notesWrap.hidden = true;
+      root.innerHTML = `<p class="overview-loading">${escapeHtml(message)}</p>`;
+    }
+
+    function renderOverview(overview) {
+      const root = document.getElementById('overview-groups');
+      root.innerHTML = '';
+      if (!overview || !overview.groups || !overview.groups.length) {
+        document.getElementById('overview').hidden = true;
+        renderCelBalance(null);
+        renderAppliedRates(null);
+        return;
+      }
+
+      overview.groups.forEach(group => {
+        const block = document.createElement('div');
+        block.className = 'overview-block';
+        if (group.id) block.dataset.groupId = group.id;
+        const layout = group.layout || 'equation';
+
+        if (layout === 'pair_row' && group.blocks && group.blocks.length) {
+          block.classList.add('overview-block-pair');
+          const row = document.createElement('div');
+          row.className = 'overview-pair-row';
+          group.blocks.forEach(sub => {
+            const subBlock = document.createElement('div');
+            subBlock.className = 'overview-block-half';
+            if (sub.title) {
+              const subTitle = document.createElement('h3');
+              subTitle.className = 'overview-block-title';
+              subTitle.textContent = sub.title;
+              subBlock.appendChild(subTitle);
+            }
+            const cardRow = document.createElement('div');
+            cardRow.className = 'overview-simple-row';
+            (sub.cards || []).forEach(c => cardRow.appendChild(makeOverviewCard(c)));
+            subBlock.appendChild(cardRow);
+            row.appendChild(subBlock);
+          });
+          block.appendChild(row);
+        } else {
+          if (group.title) {
+            const title = document.createElement('h3');
+            title.className = 'overview-block-title';
+            title.textContent = group.title;
+            block.appendChild(title);
+          }
+          if (group.cards && group.cards.length) {
+            if (layout === 'production_compact' || layout === 'compact_grid' || layout === 'simple') {
+              const row = document.createElement('div');
+              if (layout === 'production_compact') {
+                row.className = 'overview-production-compact';
+              } else {
+                row.className = layout === 'compact_grid'
+                  ? 'overview-compact-grid'
+                  : 'overview-simple-row';
+              }
+              group.cards.forEach(c => row.appendChild(makeOverviewCard(c)));
+              block.appendChild(row);
+            } else if (group.equation) {
+              block.appendChild(buildEquationRow(group.equation, group.cards));
+            } else {
+              const row = document.createElement('div');
+              row.className = 'equation-row';
+              group.cards.forEach(c => row.appendChild(makeOverviewCard(c)));
+              block.appendChild(row);
+            }
+          }
+        }
+        root.appendChild(block);
+      });
+
+      const hintEl = document.getElementById('overview-hint');
+      if (overview.hint) {
+        hintEl.textContent = overview.hint;
+        hintEl.hidden = false;
+      } else {
+        hintEl.hidden = true;
+      }
+
+      const notesEl = document.getElementById('overview-period-notes');
+      notesEl.innerHTML = '';
+      if (overview.period_notes && overview.period_notes.length) {
+        overview.period_notes.forEach(n => {
+          const li = document.createElement('li');
+          li.textContent = `${n.label} : à partir du ${n.effective_from}${n.note ? ' — ' + n.note : ''}`;
+          notesEl.appendChild(li);
+        });
+        notesEl.hidden = false;
+      } else {
+        notesEl.hidden = true;
+      }
+
+      const formulaEl = document.getElementById('overview-formula');
+      if (overview.formula) {
+        formulaEl.textContent = overview.formula;
+        formulaEl.hidden = false;
+      } else {
+        formulaEl.hidden = true;
+      }
+
+      const notesWrap = document.getElementById('overview-notes');
+      if (notesWrap) {
+        const hasNotes = !hintEl.hidden || !notesEl.hidden || !formulaEl.hidden;
+        notesWrap.hidden = !hasNotes;
+      }
+
+      document.getElementById('overview').hidden = false;
+      renderCelBalance(overview.cel_balance);
+      renderAppliedRates(overview.applied_rates);
+    }
+
+    async function loadStats() {
+      const start = document.getElementById('start').value;
+      const end = document.getElementById('end').value;
+      const generation = ++loadGeneration;
+      if (loadAbort) loadAbort.abort();
+      loadAbort = new AbortController();
+
+      setLoading(true);
+      setStatus('Chargement Leneda (12 compteurs, ~5–15 s)…', false);
+      showOverviewLoading('Chargement des séries Leneda — 12 compteurs, patientez quelques secondes…');
+      clearStatChartAreas();
+      document.getElementById('errors').hidden = true;
+      document.getElementById('enphase-note').hidden = true;
+
+      const errorParts = [];
+
+      try {
+        const agg = getAggregation();
+        const res = await fetch(
+          `/api/data?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&aggregation=${encodeURIComponent(agg)}`,
+          { signal: loadAbort.signal }
+        );
+        const data = await res.json();
+        if (generation !== loadGeneration) return;
+        if (!res.ok) {
+          setStatus(data.error || res.statusText, true);
+          return;
+        }
+
+        const aggLevel = data.chart_aggregation || agg;
+        renderAccountsStatus(data.leneda_accounts);
+        renderOverview(data.overview);
+
+        const chartGroups = data.chart_groups || {};
+        const consGroups = chartGroups.consumption || [];
+        const prodGroups = chartGroups.production || [];
+        const consSub = document.getElementById('consumption-subsection');
+        const hasCons = renderChartGroups(
+          document.getElementById('section-consumption'),
+          consGroups,
+          aggLevel,
+          '#consumption-host',
+        );
+        if (consSub) consSub.hidden = !hasCons;
+        renderChartGroups(
+          document.getElementById('section-production'),
+          prodGroups,
+          aggLevel,
+          '#production-host',
+        );
+
+        const noteEl = document.getElementById('enphase-note');
+        const panelEnphase = document.getElementById('panel-enphase');
+        panelEnphase.hidden = true;
+        noteEl.hidden = true;
+
+        if (data.errors && data.errors.length) {
+          data.errors.forEach(e => errorParts.push(e));
+        }
+
+        if (errorParts.length) {
+          const errEl = document.getElementById('errors');
+          errEl.hidden = false;
+          errEl.innerHTML = '<h3>Avertissements</h3>' + errorParts.map(e =>
+            `<p><strong>${e.label || e.id}</strong>: ${e.error}</p>`
+          ).join('');
+        }
+
+        const aggLabel = AGG_LABELS[aggLevel] || aggLevel;
+        const parts = [`${data.series.length} séries Leneda`];
+        if (data.enphase && data.enphase.series) parts.push('Enphase OK');
+        setStatus(`OK · ${parts.join(' · ')} · vue ${aggLabel} · ${data.fetched_at}`, false);
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        if (generation === loadGeneration) {
+          setStatus(String(e), true);
+          showOverviewLoading(`Erreur : ${e.message || e}`);
+        }
+      } finally {
+        if (generation === loadGeneration) setLoading(false);
+      }
+    }
+
+    async function loadAmortization(force) {
+      const supplierEl = document.getElementById('amort-supplier');
+      const supplier = supplierEl ? supplierEl.value : '';
+      if (amortLoaded && !force && amortLoadedSupplier === supplier) return;
+      const generation = ++amortLoadGeneration;
+      if (amortAbort) amortAbort.abort();
+      amortAbort = new AbortController();
+
+      setAmortStatus('Chargement amortissement…', false);
+      document.getElementById('amort-kpis').hidden = true;
+      document.getElementById('amort-chart-wrap').hidden = true;
+      const tablePanel = document.getElementById('panel-amort-table');
+      if (tablePanel) tablePanel.hidden = true;
+      const notesEl = document.getElementById('amort-notes');
+      if (notesEl) notesEl.hidden = true;
+      document.getElementById('amortization-error').hidden = true;
+
+      try {
+        const q = supplier ? `?supplier=${encodeURIComponent(supplier)}` : '';
+        const res = await fetch(`/api/amortization${q}`, { signal: amortAbort.signal });
+        const data = await res.json();
+        if (generation !== amortLoadGeneration) return;
+        if (!res.ok) {
+          setAmortStatus(data.error || res.statusText, true);
+          return;
+        }
+        renderAmortization(data);
+        amortLoaded = true;
+        amortLoadedSupplier = (data.injection && data.injection.supplier_id) || supplier;
+        const injLabel = (data.injection && data.injection.supplier_label) || supplier;
+        setAmortStatus(`OK · ${injLabel} · cumul à jour`, false);
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        if (generation === amortLoadGeneration) setAmortStatus(String(e), true);
+      }
+    }
+
+    const amortSupplierEl = document.getElementById('amort-supplier');
+    if (amortSupplierEl) {
+      amortSupplierEl.addEventListener('change', () => loadAmortization(true));
+    }
+
+    document.getElementById('load-btn').addEventListener('click', () => {
+      setPresetActive(null);
+      syncGranularityButtons(false);
+      loadStats();
+    });
+
+    document.getElementById('start').addEventListener('change', () => {
+      setPresetActive(null);
+      syncGranularityButtons(true);
+    });
+    document.getElementById('end').addEventListener('change', () => {
+      setPresetActive(null);
+      syncGranularityButtons(true);
+    });
+
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => applyPeriodPreset(btn.dataset.preset));
+    });
+
+    document.querySelectorAll('.gran-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const span = periodSpanDays(
+          document.getElementById('start').value,
+          document.getElementById('end').value,
+        );
+        if (!granularityAllowed(btn.dataset.aggregation, span)) return;
+        setAggregation(btn.dataset.aggregation);
+        loadStats();
+      });
+    });
+
+    let chartResizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(chartResizeTimer);
+      chartResizeTimer = setTimeout(() => {
+        Object.values(charts).forEach(c => {
+          try { c.resize(); } catch (_) { /* chart destroyed */ }
+        });
+      }, 120);
+    });
+
+    applyRouteFromHash();
+    try {
+      if (window.__chartFailed) {
+        showOverviewLoading('Chart.js introuvable — vérifiez que static/chart.umd.min.js est bien sur le disque (iCloud ?).');
+      }
+      if (currentView() !== 'amort') {
+        const today = new Date();
+        const op = parseIsoDateLocal(OPERATIONAL_FROM);
+        if (op && today >= op) {
+          applyPeriodPreset('since-operational');
+        } else {
+          applyPeriodPreset('year-current');
+        }
+      }
+    } catch (e) {
+      setStatus(String(e), true);
+      showOverviewLoading(`Erreur au démarrage : ${e.message || e}`);
+    }
+  </script>
+</body>
+</html>

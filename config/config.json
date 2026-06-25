@@ -1,0 +1,731 @@
+{
+  "entity_id": "altena",
+  "app_title": "Solarenergie fir Altena",
+  "site_label": "Communauté énergétique locale (Marin-Midi produit, membres Levant consomment",
+  "port": 5070,
+  "lan_access": true,
+  "cache_enabled": true,
+  "operational_from": "2026-06-12",
+  "operational_note": "SU00000049 depuis 12/06/2026 — Jacoby, L&M, 4× Eschville (12/06) ; 4 compteurs Levant parties communes C–F (22/06).",
+  "mwsolar_auto_update": true,
+  "mwsolar_sync_from": "2025-06-01",
+  "suppliers": {
+    "sudstroum": {
+      "label": "Sudstroum",
+      "mwsolar_factor": 0.9
+    },
+    "enovos": {
+      "label": "Enovos",
+      "mwsolar_factor": 0.8
+    }
+  },
+  "member_economics": {
+    "reference_supplier": "sudstroum",
+    "supplier_by_year": {
+      "2026": 0.186
+    },
+    "cel_share_eur_per_kwh": 0.1,
+    "note": "Économie nette = kWh CEL × tarif fournisseur estimé − kWh × tarif partage CEL. Tarif fournisseur : référence Sudstroum pour tous (écarts réels faibles)."
+  },
+  "producer_economics": {
+    "injection_supplier": "sudstroum",
+    "injection_fallback_eur_per_kwh": 0.05,
+    "injection_weighted_from": "2025-06-01",
+    "note": "Gain partage CEL = kWh × tarif CEL − kWh × tarif injection estimé. Tarif injection : moyenne pondérée par les injections Marin–Midi depuis juin 2025 (MW Solar × 90 % Sudstroum), pas une moyenne annuelle simple."
+  },
+  "manual_production": {
+    "enabled": false
+  },
+  "fusion_solar": {
+    "enabled": false,
+    "note": "Désactivé — cette communauté est gérée exclusivement via Leneda (partages CEL)."
+  },
+  "onemeter_derive_consumption": false,
+  "timeline_master_id": "prod_marin_active",
+  "leneda_community_account": "piren",
+  "leneda_community_account_note": "Contexte Leneda « Sylvain Piren » — Mondercange, Esch, CE gérées (PODs consommation membres Altena). Pas de compte Altena séparé.",
+  "leneda_community_groups": [
+    "SU00000049"
+  ],
+  "leneda_community_groups_note": "Solarenergie fir Altena — export partages Leneda (décomptes + référence).",
+  "leneda_integration": {
+    "group": "SU00000049",
+    "reference_export": "/Users/sylvain/Library/CloudStorage/Dropbox/_Solarenergie fir ALTENA/01-Administration/LENEDA/sharing-group-configuration_SU00000049_2026-06-15_2026-06-15T13_04_34+02_00.xlsx",
+    "reference_export_date": "2026-06-15",
+    "active_consumption_pods": [
+      "consumption_jacoby",
+      "consumption_lm_sci",
+      "consumption_eschville_inv",
+      "consumption_eschville_2",
+      "consumption_eschville_3",
+      "consumption_eschville_4",
+      "consumption_levant_c",
+      "consumption_levant_d",
+      "consumption_levant_e",
+      "consumption_levant_f"
+    ],
+    "levant_integration_date": "2026-06-22"
+  },
+  "pods": {
+    "production_marin": "LU00000604058PV000000000000024919",
+    "production_midi": "LU00000604047PV000000000000024920",
+    "consumption_levant_c": "LU00000604058ELEC0000000000020942",
+    "consumption_levant_d": "LU00000604221ELEC0000000000020946",
+    "consumption_levant_e": "LU00000604221ELEC0000000000020943",
+    "consumption_levant_f": "LU00000604221ELEC0000000000020947",
+    "consumption_lm_sci": "LU00000604058ELEC0000000000025054",
+    "consumption_jacoby": "LU00000604222ELEC0000000000025103",
+    "consumption_eschville_inv": "LU00000604221ELEC0000000000020945",
+    "consumption_eschville_2": "LU00000604222ELEC0000000000025088",
+    "consumption_eschville_3": "LU00000604222ELEC0000000000025100",
+    "consumption_eschville_4": "LU00000604222ELEC0000000000025102"
+  },
+  "pod_accounts": {
+    "production_marin": "marin",
+    "production_midi": "midi",
+    "consumption_levant_c": "piren",
+    "consumption_levant_d": "piren",
+    "consumption_levant_e": "piren",
+    "consumption_levant_f": "piren",
+    "consumption_lm_sci": "piren",
+    "consumption_jacoby": "piren",
+    "consumption_eschville_inv": "piren",
+    "consumption_eschville_2": "piren",
+    "consumption_eschville_3": "piren",
+    "consumption_eschville_4": "piren"
+  },
+  "consumption_overviews": [
+    {
+      "roof_id": "levant_c",
+      "title": "Levant — commun entrée C",
+      "net_id": "cons_levant_c_active",
+      "cel_id": "cons_levant_c_cel",
+      "grid_id": "cons_levant_c_grid"
+    },
+    {
+      "roof_id": "levant_d",
+      "title": "Levant — commun entrée D",
+      "net_id": "cons_levant_d_active",
+      "cel_id": "cons_levant_d_cel",
+      "grid_id": "cons_levant_d_grid"
+    },
+    {
+      "roof_id": "levant_e",
+      "title": "Levant — commun entrée E",
+      "net_id": "cons_levant_e_active",
+      "cel_id": "cons_levant_e_cel",
+      "grid_id": "cons_levant_e_grid"
+    },
+    {
+      "roof_id": "levant_f",
+      "title": "Levant — commun entrée F",
+      "net_id": "cons_levant_f_active",
+      "cel_id": "cons_levant_f_cel",
+      "grid_id": "cons_levant_f_grid"
+    },
+    {
+      "roof_id": "lm_sci",
+      "title": "L&M SCI — kinésithérapie",
+      "net_id": "cons_lm_sci_active",
+      "cel_id": "cons_lm_sci_cel",
+      "grid_id": "cons_lm_sci_grid"
+    },
+    {
+      "roof_id": "jacoby",
+      "title": "Dr Jacoby — cabinet gynécologique",
+      "net_id": "cons_jacoby_active",
+      "cel_id": "cons_jacoby_cel",
+      "grid_id": "cons_jacoby_grid"
+    },
+    {
+      "roof_id": "eschville_inv",
+      "title": "Eschville Invest Sàrl",
+      "net_id": "cons_eschville_inv_active",
+      "cel_id": "cons_eschville_inv_cel",
+      "grid_id": "cons_eschville_inv_grid"
+    },
+    {
+      "roof_id": "eschville_2",
+      "title": "Eschville 2 sàrl",
+      "net_id": "cons_eschville_2_active",
+      "cel_id": "cons_eschville_2_cel",
+      "grid_id": "cons_eschville_2_grid"
+    },
+    {
+      "roof_id": "eschville_3",
+      "title": "Eschville 3 sàrl",
+      "net_id": "cons_eschville_3_active",
+      "cel_id": "cons_eschville_3_cel",
+      "grid_id": "cons_eschville_3_grid"
+    },
+    {
+      "roof_id": "eschville_4",
+      "title": "Eschville 4 sàrl",
+      "net_id": "cons_eschville_4_active",
+      "cel_id": "cons_eschville_4_cel",
+      "grid_id": "cons_eschville_4_grid"
+    }
+  ],
+  "production_overviews": [
+    {
+      "roof_id": "marin",
+      "title": "Marin — production PV (surplus Altena)",
+      "total_id": "prod_marin_active",
+      "shared_l2_id": "prod_marin_shared_l2",
+      "shared_cel_id": "prod_marin_shared_cel",
+      "market_id": "prod_marin_market",
+      "self_consumption_id": "self_consumption_marin"
+    },
+    {
+      "roof_id": "midi",
+      "title": "Midi — production PV (surplus Altena)",
+      "total_id": "prod_midi_active",
+      "shared_l2_id": "prod_midi_shared_l2",
+      "shared_cel_id": "prod_midi_shared_cel",
+      "market_id": "prod_midi_market",
+      "self_consumption_id": "self_consumption_midi"
+    }
+  ],
+  "series": [
+    {
+      "id": "cons_levant_c_active",
+      "group": "consumption",
+      "roof_id": "levant_c",
+      "label": "Levant — commun entrée C — consommation nette",
+      "pod": "consumption_levant_c",
+      "obis": "1-1:1.29.0",
+      "color": "#1d4ed8",
+      "effective_from": "2026-06-22"
+    },
+    {
+      "id": "cons_levant_c_cel",
+      "group": "consumption",
+      "roof_id": "levant_c",
+      "chart": false,
+      "label": "Levant — commun entrée C — couverte par CEL",
+      "pod": "consumption_levant_c",
+      "obis": "1-65:1.29.2",
+      "color": "#047857",
+      "effective_from": "2026-06-22"
+    },
+    {
+      "id": "cons_levant_c_grid",
+      "group": "consumption",
+      "roof_id": "levant_c",
+      "label": "Levant — commun entrée C — fournie par le marché",
+      "pod": "consumption_levant_c",
+      "source": "by_context",
+      "time_series_context": "GridOffTakeConsumption",
+      "obis": "1-65:1.29.9",
+      "color": "#991b1b",
+      "effective_from": "2026-06-22"
+    },
+    {
+      "id": "cons_levant_d_active",
+      "group": "consumption",
+      "roof_id": "levant_d",
+      "label": "Levant — commun entrée D — consommation nette",
+      "pod": "consumption_levant_d",
+      "obis": "1-1:1.29.0",
+      "color": "#2563eb",
+      "effective_from": "2026-06-22"
+    },
+    {
+      "id": "cons_levant_d_cel",
+      "group": "consumption",
+      "roof_id": "levant_d",
+      "chart": false,
+      "label": "Levant — commun entrée D — couverte par CEL",
+      "pod": "consumption_levant_d",
+      "obis": "1-65:1.29.2",
+      "color": "#065f46",
+      "effective_from": "2026-06-22"
+    },
+    {
+      "id": "cons_levant_d_grid",
+      "group": "consumption",
+      "roof_id": "levant_d",
+      "label": "Levant — commun entrée D — fournie par le marché",
+      "pod": "consumption_levant_d",
+      "source": "by_context",
+      "time_series_context": "GridOffTakeConsumption",
+      "obis": "1-65:1.29.9",
+      "color": "#b91c1c",
+      "effective_from": "2026-06-22"
+    },
+    {
+      "id": "cons_levant_e_active",
+      "group": "consumption",
+      "roof_id": "levant_e",
+      "label": "Levant — commun entrée E — consommation nette",
+      "pod": "consumption_levant_e",
+      "obis": "1-1:1.29.0",
+      "color": "#3b82f6",
+      "effective_from": "2026-06-22"
+    },
+    {
+      "id": "cons_levant_e_cel",
+      "group": "consumption",
+      "roof_id": "levant_e",
+      "chart": false,
+      "label": "Levant — commun entrée E — couverte par CEL",
+      "pod": "consumption_levant_e",
+      "obis": "1-65:1.29.2",
+      "color": "#10b981",
+      "effective_from": "2026-06-22"
+    },
+    {
+      "id": "cons_levant_e_grid",
+      "group": "consumption",
+      "roof_id": "levant_e",
+      "label": "Levant — commun entrée E — fournie par le marché",
+      "pod": "consumption_levant_e",
+      "source": "by_context",
+      "time_series_context": "GridOffTakeConsumption",
+      "obis": "1-65:1.29.9",
+      "color": "#dc2626",
+      "effective_from": "2026-06-22"
+    },
+    {
+      "id": "cons_levant_f_active",
+      "group": "consumption",
+      "roof_id": "levant_f",
+      "label": "Levant — commun entrée F — consommation nette",
+      "pod": "consumption_levant_f",
+      "obis": "1-1:1.29.0",
+      "color": "#60a5fa",
+      "effective_from": "2026-06-22"
+    },
+    {
+      "id": "cons_levant_f_cel",
+      "group": "consumption",
+      "roof_id": "levant_f",
+      "chart": false,
+      "label": "Levant — commun entrée F — couverte par CEL",
+      "pod": "consumption_levant_f",
+      "obis": "1-65:1.29.2",
+      "color": "#34d399",
+      "effective_from": "2026-06-22"
+    },
+    {
+      "id": "cons_levant_f_grid",
+      "group": "consumption",
+      "roof_id": "levant_f",
+      "label": "Levant — commun entrée F — fournie par le marché",
+      "pod": "consumption_levant_f",
+      "source": "by_context",
+      "time_series_context": "GridOffTakeConsumption",
+      "obis": "1-65:1.29.9",
+      "color": "#ef4444",
+      "effective_from": "2026-06-22"
+    },
+    {
+      "id": "cons_lm_sci_active",
+      "group": "consumption",
+      "roof_id": "lm_sci",
+      "label": "L&M SCI — kinésithérapie — consommation nette",
+      "pod": "consumption_lm_sci",
+      "obis": "1-1:1.29.0",
+      "color": "#059669",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_lm_sci_cel",
+      "group": "consumption",
+      "roof_id": "lm_sci",
+      "chart": false,
+      "label": "L&M SCI — kinésithérapie — couverte par CEL",
+      "pod": "consumption_lm_sci",
+      "obis": "1-65:1.29.2",
+      "color": "#0d9488",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_lm_sci_grid",
+      "group": "consumption",
+      "roof_id": "lm_sci",
+      "label": "L&M SCI — kinésithérapie — fournie par le marché",
+      "pod": "consumption_lm_sci",
+      "source": "by_context",
+      "time_series_context": "GridOffTakeConsumption",
+      "obis": "1-65:1.29.9",
+      "color": "#f97316",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_jacoby_active",
+      "group": "consumption",
+      "roof_id": "jacoby",
+      "label": "Dr Jacoby — cabinet gynécologique — consommation nette",
+      "pod": "consumption_jacoby",
+      "obis": "1-1:1.29.0",
+      "color": "#dc2626",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_jacoby_cel",
+      "group": "consumption",
+      "roof_id": "jacoby",
+      "chart": false,
+      "label": "Dr Jacoby — cabinet gynécologique — couverte par CEL",
+      "pod": "consumption_jacoby",
+      "obis": "1-65:1.29.2",
+      "color": "#b91c1c",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_jacoby_grid",
+      "group": "consumption",
+      "roof_id": "jacoby",
+      "label": "Dr Jacoby — cabinet gynécologique — fournie par le marché",
+      "pod": "consumption_jacoby",
+      "source": "by_context",
+      "time_series_context": "GridOffTakeConsumption",
+      "obis": "1-65:1.29.9",
+      "color": "#9a3412",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_eschville_inv_active",
+      "group": "consumption",
+      "roof_id": "eschville_inv",
+      "label": "Eschville Invest Sàrl — consommation nette",
+      "pod": "consumption_eschville_inv",
+      "obis": "1-1:1.29.0",
+      "color": "#7c3aed",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_eschville_inv_cel",
+      "group": "consumption",
+      "roof_id": "eschville_inv",
+      "chart": false,
+      "label": "Eschville Invest Sàrl — couverte par CEL",
+      "pod": "consumption_eschville_inv",
+      "obis": "1-65:1.29.2",
+      "color": "#6d28d9",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_eschville_inv_grid",
+      "group": "consumption",
+      "roof_id": "eschville_inv",
+      "label": "Eschville Invest Sàrl — fournie par le marché",
+      "pod": "consumption_eschville_inv",
+      "source": "by_context",
+      "time_series_context": "GridOffTakeConsumption",
+      "obis": "1-65:1.29.9",
+      "color": "#4c1d95",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_eschville_2_active",
+      "group": "consumption",
+      "roof_id": "eschville_2",
+      "label": "Eschville 2 sàrl — consommation nette",
+      "pod": "consumption_eschville_2",
+      "obis": "1-1:1.29.0",
+      "color": "#9333ea",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_eschville_2_cel",
+      "group": "consumption",
+      "roof_id": "eschville_2",
+      "chart": false,
+      "label": "Eschville 2 sàrl — couverte par CEL",
+      "pod": "consumption_eschville_2",
+      "obis": "1-65:1.29.2",
+      "color": "#7e22ce",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_eschville_2_grid",
+      "group": "consumption",
+      "roof_id": "eschville_2",
+      "label": "Eschville 2 sàrl — fournie par le marché",
+      "pod": "consumption_eschville_2",
+      "source": "by_context",
+      "time_series_context": "GridOffTakeConsumption",
+      "obis": "1-65:1.29.9",
+      "color": "#5b21b6",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_eschville_3_active",
+      "group": "consumption",
+      "roof_id": "eschville_3",
+      "label": "Eschville 3 sàrl — consommation nette",
+      "pod": "consumption_eschville_3",
+      "obis": "1-1:1.29.0",
+      "color": "#a855f7",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_eschville_3_cel",
+      "group": "consumption",
+      "roof_id": "eschville_3",
+      "chart": false,
+      "label": "Eschville 3 sàrl — couverte par CEL",
+      "pod": "consumption_eschville_3",
+      "obis": "1-65:1.29.2",
+      "color": "#8b5cf6",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_eschville_3_grid",
+      "group": "consumption",
+      "roof_id": "eschville_3",
+      "label": "Eschville 3 sàrl — fournie par le marché",
+      "pod": "consumption_eschville_3",
+      "source": "by_context",
+      "time_series_context": "GridOffTakeConsumption",
+      "obis": "1-65:1.29.9",
+      "color": "#6b21a8",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_eschville_4_active",
+      "group": "consumption",
+      "roof_id": "eschville_4",
+      "label": "Eschville 4 sàrl — consommation nette",
+      "pod": "consumption_eschville_4",
+      "obis": "1-1:1.29.0",
+      "color": "#c026d3",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_eschville_4_cel",
+      "group": "consumption",
+      "roof_id": "eschville_4",
+      "chart": false,
+      "label": "Eschville 4 sàrl — couverte par CEL",
+      "pod": "consumption_eschville_4",
+      "obis": "1-65:1.29.2",
+      "color": "#d946ef",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "cons_eschville_4_grid",
+      "group": "consumption",
+      "roof_id": "eschville_4",
+      "label": "Eschville 4 sàrl — fournie par le marché",
+      "pod": "consumption_eschville_4",
+      "source": "by_context",
+      "time_series_context": "GridOffTakeConsumption",
+      "obis": "1-65:1.29.9",
+      "color": "#86198f",
+      "effective_from": "2026-06-12"
+    },
+    {
+      "id": "prod_marin_active",
+      "group": "production",
+      "roof_id": "marin",
+      "label": "Marin — production totale",
+      "pod": "production_marin",
+      "obis": "1-1:2.29.0",
+      "color": "#ca8a04"
+    },
+    {
+      "id": "prod_marin_shared_l2",
+      "group": "production",
+      "roof_id": "marin",
+      "label": "Marin — partage ACR",
+      "pod": "production_marin",
+      "obis": "1-65:2.29.3",
+      "color": "#7c3aed"
+    },
+    {
+      "id": "prod_marin_shared_cel",
+      "group": "production",
+      "roof_id": "marin",
+      "label": "Marin — partage CEL",
+      "pod": "production_marin",
+      "obis": "1-65:2.29.2",
+      "color": "#9333ea"
+    },
+    {
+      "id": "prod_marin_market",
+      "group": "production",
+      "roof_id": "marin",
+      "label": "Marin — injection (marché)",
+      "pod": "production_marin",
+      "obis": "1-65:2.29.9",
+      "color": "#64748b"
+    },
+    {
+      "id": "prod_midi_active",
+      "group": "production",
+      "roof_id": "midi",
+      "label": "Midi — production totale",
+      "pod": "production_midi",
+      "obis": "1-1:2.29.0",
+      "color": "#d97706"
+    },
+    {
+      "id": "prod_midi_shared_l2",
+      "group": "production",
+      "roof_id": "midi",
+      "label": "Midi — partage ACR",
+      "pod": "production_midi",
+      "obis": "1-65:2.29.3",
+      "color": "#6d28d9"
+    },
+    {
+      "id": "prod_midi_shared_cel",
+      "group": "production",
+      "roof_id": "midi",
+      "label": "Midi — partage CEL",
+      "pod": "production_midi",
+      "obis": "1-65:2.29.2",
+      "color": "#7e22ce"
+    },
+    {
+      "id": "prod_midi_market",
+      "group": "production",
+      "roof_id": "midi",
+      "label": "Midi — injection (marché)",
+      "pod": "production_midi",
+      "obis": "1-65:2.29.9",
+      "color": "#475569"
+    }
+  ],
+  "summary_rows": [
+    {
+      "ids": [
+        "cons_levant_c_active",
+        "cons_levant_c_cel",
+        "cons_levant_c_grid"
+      ],
+      "operators": [
+        "=",
+        "+"
+      ]
+    },
+    {
+      "ids": [
+        "cons_levant_d_active",
+        "cons_levant_d_cel",
+        "cons_levant_d_grid"
+      ],
+      "operators": [
+        "=",
+        "+"
+      ]
+    },
+    {
+      "ids": [
+        "cons_levant_e_active",
+        "cons_levant_e_cel",
+        "cons_levant_e_grid"
+      ],
+      "operators": [
+        "=",
+        "+"
+      ]
+    },
+    {
+      "ids": [
+        "cons_levant_f_active",
+        "cons_levant_f_cel",
+        "cons_levant_f_grid"
+      ],
+      "operators": [
+        "=",
+        "+"
+      ]
+    },
+    {
+      "ids": [
+        "cons_lm_sci_active",
+        "cons_lm_sci_cel",
+        "cons_lm_sci_grid"
+      ],
+      "operators": [
+        "=",
+        "+"
+      ]
+    },
+    {
+      "ids": [
+        "cons_jacoby_active",
+        "cons_jacoby_cel",
+        "cons_jacoby_grid"
+      ],
+      "operators": [
+        "=",
+        "+"
+      ]
+    },
+    {
+      "ids": [
+        "cons_eschville_inv_active",
+        "cons_eschville_inv_cel",
+        "cons_eschville_inv_grid"
+      ],
+      "operators": [
+        "=",
+        "+"
+      ]
+    },
+    {
+      "ids": [
+        "cons_eschville_2_active",
+        "cons_eschville_2_cel",
+        "cons_eschville_2_grid"
+      ],
+      "operators": [
+        "=",
+        "+"
+      ]
+    },
+    {
+      "ids": [
+        "cons_eschville_3_active",
+        "cons_eschville_3_cel",
+        "cons_eschville_3_grid"
+      ],
+      "operators": [
+        "=",
+        "+"
+      ]
+    },
+    {
+      "ids": [
+        "cons_eschville_4_active",
+        "cons_eschville_4_cel",
+        "cons_eschville_4_grid"
+      ],
+      "operators": [
+        "=",
+        "+"
+      ]
+    },
+    {
+      "ids": [
+        "prod_marin_active",
+        "prod_marin_shared_l2",
+        "prod_marin_shared_cel",
+        "prod_marin_market"
+      ],
+      "operators": [
+        "=",
+        "+",
+        "+"
+      ]
+    },
+    {
+      "ids": [
+        "prod_midi_active",
+        "prod_midi_shared_l2",
+        "prod_midi_shared_cel",
+        "prod_midi_market"
+      ],
+      "operators": [
+        "=",
+        "+",
+        "+"
+      ]
+    }
+  ]
+}

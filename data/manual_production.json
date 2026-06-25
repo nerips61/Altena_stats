@@ -1,0 +1,30 @@
+{
+  "note": "Production brute (onduleur / relevé) — temporaire jusqu’à FusionSolar ou Leneda fiable. Mise en ligne ~2025-06-24 (juin ≈ une semaine).",
+  "online_from": "2025-06-24",
+  "rows": [
+    {"roof_id": "marin", "year_month": "2025-06", "kwh": 1150, "note": "≈ 1 semaine en ligne"},
+    {"roof_id": "midi", "year_month": "2025-06", "kwh": 1200, "note": "≈ 1 semaine en ligne"},
+    {"roof_id": "marin", "year_month": "2025-07", "kwh": 4110},
+    {"roof_id": "midi", "year_month": "2025-07", "kwh": 4290},
+    {"roof_id": "marin", "year_month": "2025-08", "kwh": 3990},
+    {"roof_id": "midi", "year_month": "2025-08", "kwh": 4090},
+    {"roof_id": "marin", "year_month": "2025-09", "kwh": 2400},
+    {"roof_id": "midi", "year_month": "2025-09", "kwh": 2410},
+    {"roof_id": "marin", "year_month": "2025-10", "kwh": 1360},
+    {"roof_id": "midi", "year_month": "2025-10", "kwh": 1360},
+    {"roof_id": "marin", "year_month": "2025-11", "kwh": 819},
+    {"roof_id": "midi", "year_month": "2025-11", "kwh": 804},
+    {"roof_id": "marin", "year_month": "2025-12", "kwh": 524},
+    {"roof_id": "midi", "year_month": "2025-12", "kwh": 512},
+    {"roof_id": "marin", "year_month": "2026-01", "kwh": 365},
+    {"roof_id": "midi", "year_month": "2026-01", "kwh": 370},
+    {"roof_id": "marin", "year_month": "2026-02", "kwh": 875},
+    {"roof_id": "midi", "year_month": "2026-02", "kwh": 871},
+    {"roof_id": "marin", "year_month": "2026-03", "kwh": 2560},
+    {"roof_id": "midi", "year_month": "2026-03", "kwh": 2610},
+    {"roof_id": "marin", "year_month": "2026-04", "kwh": 3900},
+    {"roof_id": "midi", "year_month": "2026-04", "kwh": 4050},
+    {"roof_id": "marin", "year_month": "2026-05", "kwh": 2500},
+    {"roof_id": "midi", "year_month": "2026-05", "kwh": 2640}
+  ]
+}
