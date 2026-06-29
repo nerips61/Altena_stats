@@ -2,8 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")" || exit 1
 
-# shellcheck source=../scripts/ensure_venv.sh
-source "../scripts/ensure_venv.sh"
+# shellcheck source=../../../tools/scripts/ensure_venv.sh
+source "../../../tools/scripts/ensure_venv.sh"
 # shellcheck source=/dev/null
 source "$VENV/bin/activate" || exit 1
 
