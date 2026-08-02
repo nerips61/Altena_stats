@@ -63,6 +63,22 @@ def _connect() -> sqlite3.Connection:
     return _conn
 
 
+def last_available_leneda_date_from_cache(aggregation: str = "Day") -> str | None:
+    """Dernière date (YYYY-MM-DD) présente dans le cache Leneda."""
+    init_db()
+    row = _connect().execute(
+        """
+        SELECT MAX(substr(bucket_start, 1, 10)) AS last_day
+        FROM buckets
+        WHERE source = ? AND aggregation = ?
+        """,
+        (SOURCE_LENEDA, aggregation),
+    ).fetchone()
+    if not row or not row["last_day"]:
+        return None
+    return str(row["last_day"])
+
+
 def init_db() -> None:
     with _lock:
         conn = _connect()

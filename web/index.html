@@ -2,33 +2,47 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <title>{{ app_title }}</title>
+  <title>Solarenergie fir Altena</title>
   <link rel="stylesheet" href="static/style.css?v=12">
+  <style>
+    header h1 {
+      display: block !important;
+      margin: 0 0 0.25rem;
+      font-size: var(--font-xl, 24px);
+    }
+    .controls-dates[hidden] {
+      display: none !important;
+    }
+    #data-lag-note {
+      display: none !important;
+    }
+    .app-footer {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border, #cbd5e1);
+    }
+    .app-footer .purpose {
+      margin: 0 0 0.5rem;
+    }
+  </style>
 </head>
 <body>
   <header>
-    <h1>{{ app_title }}</h1>
-    <p class="subtitle" id="site-label">{{ site_label }}</p>
-    <p class="purpose">Communauté énergétique Altena — partages et consommation via Leneda (SU00000049).</p>
-    {% if operational_note %}
-    <p class="subtitle operational-note">{{ operational_note }}</p>
-    {% endif %}
+    <h1 id="app-title">Solarenergie fir Altena</h1>
+    <p class="subtitle" id="site-label"></p>
+    <p class="subtitle operational-note" id="operational-note" hidden></p>
   </header>
 
   <div id="tab-stats" class="tab-panel active" role="tabpanel">
     <section class="periods-section">
       <h2 class="section-title">Périodes</h2>
       <section class="controls">
-        <div class="controls-dates">
-          <label>Du <input type="date" id="start" value="{{ start_date }}"></label>
-          <label>Au <input type="date" id="end" value="{{ end_date }}" max="{{ max_end_date }}"></label>
+        <div class="controls-dates" hidden>
+          <label>Du <input type="date" id="start" value=""></label>
+          <label>Au <input type="date" id="end" value=""></label>
           <button type="button" id="load-btn">Charger</button>
         </div>
-        {% if data_lag and last_available_date %}
-        <p class="data-lag-note" id="data-lag-note">Données Leneda disponibles jusqu’au {{ last_available_date }} (publication en retard).</p>
-        {% else %}
         <p class="data-lag-note" id="data-lag-note" hidden></p>
-        {% endif %}
         <div class="period-presets" role="group" aria-label="Raccourcis de période">
           <span class="granularity-label">Période :</span>
           <button type="button" class="preset-btn" data-preset="since-operational">Depuis mise en service</button>
@@ -98,17 +112,14 @@
     </details>
   </div>
 
-  <div id="tab-amortization" class="tab-panel" role="tabpanel" hidden{% if not amortization_enabled %} data-disabled="1"{% endif %}>
+  <div id="tab-amortization" class="tab-panel" role="tabpanel" hidden data-disabled="1">
     <p class="tab-intro">Cumul depuis la mise en service — <strong>non filtré</strong> par les dates de l’onglet Statistiques.</p>
     <p class="amort-subsidy-note" id="amort-subsidy-note" hidden></p>
     <div class="amort-toolbar" id="amort-toolbar">
       <label class="amort-toolbar-label" for="amort-supplier">Fournisseur injection (MW Solar)</label>
       <select id="amort-supplier" class="amort-supplier-select" aria-label="Fournisseur pour le remboursement injection">
-        {% for sid, profile in injection_suppliers.items() %}
-        <option value="{{ sid }}"{% if sid == default_injection_supplier %} selected{% endif %}>
-          {{ profile.label }} ({{ (profile.mwsolar_factor * 100)|round|int }}&nbsp;% MW Solar)
-        </option>
-        {% endfor %}
+        <option value="sudstroum" selected>Sudstroum (90&nbsp;% MW Solar)</option>
+        <option value="enovos">Enovos (80&nbsp;% MW Solar)</option>
       </select>
     </div>
     <p class="panel-note" id="amortization-error" hidden></p>
@@ -146,15 +157,20 @@
     </div>
   </div>
 
+  <footer class="app-footer">
+    <p class="purpose">Communauté énergétique Altena — partages et consommation via Leneda (SU00000049).</p>
+    <p class="app-build-stamp" id="app-build-stamp">Vue statique — mise à jour périodique</p>
+  </footer>
+
   <script src="static/embedded.js" defer></script>
   <script src="static/chart.umd.min.js?v=1" defer onerror="window.__chartFailed=true"></script>
   <script defer>
-    const INITIAL_VIEW = {{ initial_view|default('stats')|tojson }};
-    const MAX_END_DATE = {{ max_end_date|tojson }};
-    const LAST_AVAILABLE_DATE = {{ last_available_date|tojson }};
-    const DATA_LAG = {{ data_lag|tojson }};
-    const AMORTIZATION_ENABLED = {{ amortization_enabled|default(false)|tojson }};
-    const OPERATIONAL_FROM = {{ operational_from|default('2026-06-12')|tojson }};
+    const INITIAL_VIEW = 'stats';
+    const MAX_END_DATE = null;
+    const LAST_AVAILABLE_DATE = null;
+    const DATA_LAG = false;
+    const AMORTIZATION_ENABLED = false;
+    let OPERATIONAL_FROM = '2026-06-12';
     const charts = {};
     let amortChart = null;
     let chartAggregation = 'Month';
@@ -1374,10 +1390,8 @@
 
       try {
         const agg = getAggregation();
-        const res = await fetch(
-          `api/data?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&aggregation=${encodeURIComponent(agg)}`,
-          { signal: loadAbort.signal }
-        );
+        const preset = activePreset || 'since-operational';
+        const res = await fetch(`data/stats-${preset}-${agg}.json`, { signal: loadAbort.signal });
         const data = await res.json();
         if (generation !== loadGeneration) return;
         if (!res.ok) {
@@ -1388,7 +1402,6 @@
         applyDataAvailability(data.data_availability);
 
         const aggLevel = data.chart_aggregation || agg;
-        renderAccountsStatus(data.leneda_accounts);
         renderOverview(data.overview);
 
         const chartGroups = data.chart_groups || {};
@@ -1533,20 +1546,31 @@
       if (window.__chartFailed) {
         showOverviewLoading('Chart.js introuvable — vérifiez que static/chart.umd.min.js est bien sur le disque (iCloud ?).');
       }
-      if (currentView() !== 'amort') {
-        const today = new Date();
-        const op = parseIsoDateLocal(OPERATIONAL_FROM);
-        if (op && today >= op) {
-          applyPeriodPreset('since-operational');
-        } else {
-          applyPeriodPreset('year-current');
+      fetch('data/meta.json').then(r => r.json()).then(meta => {
+        const titleEl = document.getElementById('app-title');
+        const labelEl = document.getElementById('site-label');
+        const noteEl = document.getElementById('operational-note');
+        const stampEl = document.getElementById('app-build-stamp');
+        if (titleEl && meta.app_title) titleEl.textContent = meta.app_title;
+        if (labelEl && meta.site_label) labelEl.textContent = meta.site_label;
+        if (noteEl && meta.operational_note) {
+          noteEl.textContent = meta.operational_note;
+          noteEl.hidden = false;
         }
-      }
+        if (meta.operational_from) OPERATIONAL_FROM = meta.operational_from;
+        if (stampEl && meta.generated_at) {
+          stampEl.textContent = `Vue statique — données au ${meta.generated_at.slice(0, 16).replace('T', ' ')}`;
+        }
+        document.title = meta.app_title || document.title;
+        const preset = meta.default_stats_preset || 'since-operational';
+        applyPeriodPreset(preset);
+      }).catch(() => {
+        applyPeriodPreset('since-operational');
+      });
     } catch (e) {
       setStatus(String(e), true);
       showOverviewLoading(`Erreur au démarrage : ${e.message || e}`);
     }
   </script>
-  <footer class="app-build-stamp" title="{{ app_build_title }}">{{ app_build_label }}</footer>
 </body>
 </html>

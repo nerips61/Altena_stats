@@ -498,7 +498,10 @@ def _period_total(
         cached = get_period_total(SOURCE_LENEDA, series_id, start, end)
         if cached is not None:
             return cached
-    data = _fetch_series_for_spec_api(pod_code, spec, start, end, "Infinite")
+    try:
+        data = _fetch_series_for_spec_api(pod_code, spec, start, end, "Infinite")
+    except Exception:
+        return 0
     total = data["total"]
     if _cache_enabled():
         from altena.cache_store import SOURCE_LENEDA, put_period_total
@@ -556,9 +559,12 @@ def _resolve_timeline(
         spec = next((s for s in series if s["id"] == sid), None)
         if not spec:
             continue
-        timeline, timeline_starts = _timeline_from_spec(
-            spec, pods, start_date, end_date, chart_aggregation
-        )
+        try:
+            timeline, timeline_starts = _timeline_from_spec(
+                spec, pods, start_date, end_date, chart_aggregation
+            )
+        except Exception:
+            continue
         if timeline:
             return timeline, timeline_starts
     return [], {}
@@ -845,3 +851,74 @@ def fetch_all_series(
             "fusion_solar_overlay": fusion_solar_overlay,
         },
     }
+
+
+def probe_leneda_last_available_date(days_back: int = 14) -> str | None:
+    """Sonde plusieurs compteurs Leneda — retourne la dernière date journalière trouvée."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from datetime import date, timedelta
+
+    config = load_config()
+    pods = config.get("pods") or {}
+    series = config.get("series") or []
+    end = date.today()
+    start = (end - timedelta(days=days_back)).isoformat()
+    end_s = end.isoformat()
+
+    probe_pairs: list[tuple[str, dict[str, Any]]] = []
+    seen_pods: set[str] = set()
+
+    def add_probe(pod_key: str, spec: dict[str, Any] | None) -> None:
+        if not spec:
+            return
+        pod_code = (pods.get(pod_key or spec.get("pod") or "") or "").strip()
+        if not pod_code or "CHANGEME" in pod_code.upper() or pod_code in seen_pods:
+            return
+        seen_pods.add(pod_code)
+        probe_pairs.append((pod_code, spec))
+
+    integration = config.get("leneda_integration") or {}
+    for pod_key in integration.get("active_consumption_pods") or []:
+        spec = next(
+            (s for s in series if s.get("pod") == pod_key and s.get("enabled", True) is not False),
+            None,
+        )
+        add_probe(pod_key, spec)
+
+    candidate_ids = [
+        config.get("timeline_master_id"),
+        "cons_jacoby_cel",
+        "prod_marin_active",
+        "prod_midi_active",
+    ]
+    for sid in candidate_ids:
+        if not sid:
+            continue
+        spec = next((s for s in series if s.get("id") == sid), None)
+        if spec:
+            add_probe(str(spec.get("pod") or ""), spec)
+
+    if not probe_pairs:
+        return None
+
+    def probe_one(pair: tuple[str, dict[str, Any]]) -> str | None:
+        pod_code, spec = pair
+        try:
+            chart = _fetch_series_for_spec_api(pod_code, spec, start, end_s, "Day")
+        except Exception:
+            return None
+        starts = [p.get("bucket_start") for p in chart.get("points") or [] if p.get("bucket_start")]
+        return max(starts) if starts else None
+
+    last_dates: list[str] = []
+    workers = min(8, max(2, len(probe_pairs)))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(probe_one, pair) for pair in probe_pairs]
+        for fut in as_completed(futures):
+            try:
+                val = fut.result()
+                if val:
+                    last_dates.append(val)
+            except Exception:
+                continue
+    return max(last_dates) if last_dates else None

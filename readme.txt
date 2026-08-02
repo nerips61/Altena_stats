@@ -11,10 +11,17 @@ Référence export : Dropbox/…/LENEDA/sharing-group-configuration_SU00000049_2
 
 Lancement
 ---------
-  ./Solarenergie4Altena_Stats.command
-  ou : cd Solarenergie4Altena_Stats && source ../scripts/ensure_venv.sh && source "$VENV/bin/activate" && python app.py
+  ./run.command
+  (venv partagé via tools/scripts/ensure_venv.sh)
 
 Portail Docker (8700) : service « altena » — DASHBOARD_PORTAL=1.
+
+Site public (Cloudflare Pages)
+------------------------------
+  Export statique : python3 scripts/export_static.py → web/
+  Aperçu local : ./preview_static.command
+  Procédure Git / Pages : docs/GITHUB.md
+  Sous-domaine energy-communities.net : encore à trancher.
 
 Configuration
 -------------
@@ -30,3 +37,4 @@ FusionSolar (optionnel) : réutilise fusion_solar.marin / .midi pour autoconsomm
 Sync cache manuelle : python scripts/sync/sync_stats_cache.py
 
 Git : nerips61/Altena_stats — secrets et cache.db hors Git.
+  Voir aussi docs/GITHUB.md (export, push, Access).

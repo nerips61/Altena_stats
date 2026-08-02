@@ -1,0 +1,72 @@
+{
+  "app_title": "Solarenergie fir Altena",
+  "site_label": "Communauté énergétique locale (Marin-Midi produit, membres Levant consomment",
+  "operational_from": "2026-06-12",
+  "operational_note": "SU00000049 depuis 12/06/2026 — Jacoby, L&M, 4× Eschville (12/06) ; 4 compteurs Levant parties communes C–F (22/06).",
+  "generated_at": "2026-08-02T22:06:12",
+  "data_availability": {
+    "today": "2026-08-02",
+    "last_available_date": "2026-07-30",
+    "max_end_date": "2026-07-30",
+    "data_lag": true,
+    "source": "probe"
+  },
+  "stats_presets": [
+    {
+      "id": "since-operational",
+      "label": "Depuis mise en service",
+      "start": "2026-06-12",
+      "end": "2026-07-30",
+      "aggregations": [
+        "Day",
+        "Week",
+        "Month"
+      ],
+      "default_aggregation": "Day"
+    },
+    {
+      "id": "year-current",
+      "label": "Année courante",
+      "start": "2026-01-01",
+      "end": "2026-07-30",
+      "aggregations": [
+        "Month"
+      ],
+      "default_aggregation": "Month"
+    },
+    {
+      "id": "year-past",
+      "label": "Année passée",
+      "start": "2025-01-01",
+      "end": "2025-12-31",
+      "aggregations": [
+        "Month"
+      ],
+      "default_aggregation": "Month"
+    },
+    {
+      "id": "semester-current",
+      "label": "Semestre courant",
+      "start": "2026-07-01",
+      "end": "2026-07-30",
+      "aggregations": [
+        "Day",
+        "Week",
+        "Month"
+      ],
+      "default_aggregation": "Day"
+    },
+    {
+      "id": "semester-past",
+      "label": "Semestre passé",
+      "start": "2026-01-01",
+      "end": "2026-06-30",
+      "aggregations": [
+        "Month"
+      ],
+      "default_aggregation": "Month"
+    }
+  ],
+  "default_stats_preset": "since-operational",
+  "amortization_enabled": false
+}

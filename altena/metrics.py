@@ -612,11 +612,14 @@ def enrich_consumption_for_dashboard(
             if net_t > 0 and abs(net_t - grid_t) <= max(1, int(0.001 * net_t)):
                 hide_ids.add(grid_id)
 
-        labels = sorted(set(net_pts) | set(ac_pts))
         bucket_starts: dict[str, str] = {}
         for src in (net_s, sc):
             for p in src.get("points") or []:
                 bucket_starts[p["date"]] = p.get("bucket_start") or p["date"]
+        labels = sorted(
+            set(net_pts) | set(ac_pts),
+            key=lambda label: bucket_starts.get(label, label),
+        )
 
         points: list[dict[str, Any]] = []
         for label in labels:
@@ -877,10 +880,14 @@ def _compact_consumption_group(
     roofs: list[dict[str, Any]],
     totals: dict[str, Any],
     leneda_series: list[dict[str, Any]] | None = None,
+    *,
+    total_label: str = "Total",
 ) -> dict[str, Any]:
     cards: list[dict[str, Any]] = []
+    total_cel = 0
     for roof in roofs:
         _cons_net, cel, _grid = _consumption_net_kwh(roof, totals, leneda_series)
+        total_cel += cel
         cards.append(
             {
                 "id": f"shared_{roof.get('roof_id', 'roof')}",
@@ -890,11 +897,24 @@ def _compact_consumption_group(
                 **_consumption_card_economics(cel),
             }
         )
+    footer_cards: list[dict[str, Any]] = []
+    if len(cards) > 1:
+        footer_cards.append(
+            {
+                "id": f"{group_id}_total",
+                "label": total_label,
+                "total": total_cel,
+                "computed": True,
+                "small": True,
+                **_consumption_card_economics(total_cel),
+            }
+        )
     return {
         "id": group_id,
         "title": title,
         "layout": "compact_grid",
         "cards": cards,
+        "footer_cards": footer_cards,
     }
 
 

@@ -16,6 +16,8 @@ from typing import Any
 from flask import Flask, jsonify, render_template, request
 
 from altena.amortization import build_amortization
+from altena.build_info import app_build_stamp
+from altena.data_availability import clamp_period, default_period, resolve_max_end_date
 from altena.enphase_client import enphase_configured, fetch_production_series
 from altena.fusion_solar_client import fusion_solar_enabled, sync_fusion_solar_monthly_backfill
 from altena.leneda_client import fetch_all_series, leneda_accounts_status, load_config
@@ -44,32 +46,27 @@ def _no_cache_local(response):
     return response
 
 
-def _default_period() -> tuple[str, str]:
-    today = date.today()
-    config = load_config()
-    op_from = (config.get("operational_from") or "").strip()
-    if op_from:
-        try:
-            op_date = date.fromisoformat(op_from[:10])
-            if today >= op_date:
-                return op_from[:10], today.isoformat()
-        except ValueError:
-            pass
-    start = today.replace(day=1)
-    return start.isoformat(), today.isoformat()
+def _default_period() -> tuple[str, str, dict]:
+    return default_period(probe_live=True)
 
 
 def _render_dashboard(initial_view: str = "stats"):
-    start, end = _default_period()
+    start, end, avail = _default_period()
     config = load_config()
     am = config.get("amortization") or {}
     amort_enabled = bool(am)
+    build_stamp = app_build_stamp(config.get("entity_id") or "altena")
     return render_template(
         "index.html",
         app_title=config.get("app_title", "Solarenergie fir Altena — énergie"),
+        app_build_label=build_stamp["label"],
+        app_build_title=build_stamp["title"],
         site_label=config.get("site_label", "Communauté énergétique locale"),
         start_date=start,
         end_date=end,
+        max_end_date=avail.get("max_end_date") or end,
+        last_available_date=avail.get("last_available_date"),
+        data_lag=avail.get("data_lag"),
         operational_from=config.get("operational_from", "2026-06-12"),
         operational_note=config.get("operational_note", ""),
         injection_suppliers=config.get("suppliers") or {},
@@ -189,12 +186,22 @@ def api_amortization():
         return jsonify({"enabled": True, "error": str(exc)}), 500
 
 
+@app.route("/api/data-availability")
+def api_data_availability():
+    force = request.args.get("refresh", "").strip().lower() in ("1", "true", "yes")
+    try:
+        return jsonify(resolve_max_end_date(probe_live=True, force_refresh=force))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
 @app.route("/api/data")
 def api_data():
     start = request.args.get("start", "").strip()
     end = request.args.get("end", "").strip()
     if not start or not end:
         return jsonify({"error": "start and end query params required (YYYY-MM-DD)"}), 400
+    start, end, avail = clamp_period(start, end)
     if start > end:
         return jsonify({"error": "start must be on or before end"}), 400
     aggregation = request.args.get("aggregation", "Day").strip()
@@ -202,6 +209,7 @@ def api_data():
         return jsonify({"error": "aggregation must be Day, Week, or Month"}), 400
     try:
         payload = fetch_dashboard(start, end, chart_aggregation=aggregation)
+        payload["data_availability"] = avail
         return jsonify(payload)
     except FileNotFoundError as exc:
         return jsonify({"error": str(exc)}), 500
