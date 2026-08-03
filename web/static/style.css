@@ -1527,7 +1527,7 @@ body.embedded .app-build-stamp {
 
   body {
     padding: 1rem 0.85rem 2.75rem;
-    font-size: var(--font-md);
+    font-size: 16px;
   }
 
   header .purpose,
@@ -1559,7 +1559,7 @@ body.embedded .app-build-stamp {
   }
 
   .tab-btn {
-    font-size: var(--font-md);
+    font-size: 16px;
     padding: 0.6rem 1rem;
   }
 
@@ -1660,7 +1660,7 @@ body.embedded .app-build-stamp {
   .overview-block[data-group-id="consumption_lm_jacoby"] .overview-simple-row .summary-label,
   .overview-production-compact .summary-label {
     min-height: 0;
-    font-size: var(--font-sm) !important;
+    font-size: 14px !important;
     line-height: 1.35;
   }
 
@@ -1674,7 +1674,7 @@ body.embedded .app-build-stamp {
   .overview-block[data-group-id="production_marin_midi"] .overview-compact-grid .summary-value,
   .overview-block[data-group-id="consumption_lm_jacoby"] .overview-simple-row .summary-value,
   .overview-production-compact .summary-value {
-    font-size: var(--font-xl) !important;
+    font-size: 24px !important;
   }
 
   .summary-pct,
@@ -1694,6 +1694,6 @@ body.embedded .app-build-stamp {
   }
 
   .chart-card h3 {
-    font-size: var(--font-md);
+    font-size: 16px;
   }
 }
