@@ -37,16 +37,15 @@ que le bloc `amortization` n’est pas configuré.
    ```bash
    python3 scripts/export_static.py
    ```
-3. Vérifier : double-clic sur `preview_static.command`
-   (ne pas ouvrir `web/index.html` en `file://`).
-4. Commit + push :
+3. Commit + push :
    ```bash
    git add web/
    git commit -m "Export Altena stats JJ/MM"
    git push
    ```
 
-Pages redéploie depuis `main` ; Access protège le domaine (OTP + e-mails autorisés).
+Pages redéploie depuis `main` ; vérifier ensuite sur le site public.
+Access protège le domaine (OTP + e-mails autorisés).
 
 Les **décomptes** restent locaux (module portail `type=billing`) — non exportés.
 

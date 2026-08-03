@@ -19,7 +19,6 @@ Portail Docker (8700) : service « altena » — DASHBOARD_PORTAL=1.
 Site public (Cloudflare Pages)
 ------------------------------
   Export statique : python3 scripts/export_static.py → web/
-  Aperçu local : ./preview_static.command
   Procédure Git / Pages : docs/GITHUB.md
   Sous-domaine energy-communities.net : encore à trancher.
 

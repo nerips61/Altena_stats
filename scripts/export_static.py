@@ -19,7 +19,7 @@ Retire des payloads le statut interne des comptes Leneda (sans intérêt public)
 Usage :
   python3 scripts/export_static.py
 
-Puis, une fois vérifié en local (preview_static.command) :
+Puis :
   git add web/ && git commit -m "Export Altena stats" && git push
 """
 
@@ -199,7 +199,7 @@ def main() -> int:
             shutil.copyfile(src, static_dst / name)
 
     print(f"\nOK — export dans {WEB_DIR}")
-    print("Vérifier en local (preview_static.command), puis :")
+    print("Ensuite :")
     print('  git add web/ && git commit -m "Export Altena stats" && git push')
     return 0
 
