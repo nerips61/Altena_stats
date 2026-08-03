@@ -1660,7 +1660,7 @@ body.embedded .app-build-stamp {
   .overview-block[data-group-id="consumption_lm_jacoby"] .overview-simple-row .summary-label,
   .overview-production-compact .summary-label {
     min-height: 0;
-    font-size: 14px !important;
+    font-size: 15px !important;
     line-height: 1.35;
   }
 
@@ -1674,7 +1674,8 @@ body.embedded .app-build-stamp {
   .overview-block[data-group-id="production_marin_midi"] .overview-compact-grid .summary-value,
   .overview-block[data-group-id="consumption_lm_jacoby"] .overview-simple-row .summary-value,
   .overview-production-compact .summary-value {
-    font-size: 24px !important;
+    font-size: 28px !important;
+    line-height: 1.15;
   }
 
   .summary-pct,
