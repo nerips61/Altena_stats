@@ -3,11 +3,11 @@
   "site_label": "Communauté énergétique locale (Marin-Midi produit, membres Levant consomment",
   "operational_from": "2026-06-12",
   "operational_note": "SU00000049 depuis 12/06/2026 — Jacoby, L&M, 4× Eschville (12/06) ; 4 compteurs Levant parties communes C–F (22/06).",
-  "generated_at": "2026-08-15T09:44:39",
+  "generated_at": "2026-09-01T14:38:31",
   "data_availability": {
-    "today": "2026-08-15",
-    "last_available_date": "2026-08-12",
-    "max_end_date": "2026-08-12",
+    "today": "2026-09-01",
+    "last_available_date": "2026-08-31",
+    "max_end_date": "2026-08-31",
     "data_lag": true,
     "source": "probe"
   },
@@ -16,19 +16,18 @@
       "id": "since-operational",
       "label": "Depuis mise en service",
       "start": "2026-06-12",
-      "end": "2026-08-12",
+      "end": "2026-08-31",
       "aggregations": [
-        "Day",
         "Week",
         "Month"
       ],
-      "default_aggregation": "Day"
+      "default_aggregation": "Week"
     },
     {
       "id": "year-current",
       "label": "Année courante",
       "start": "2026-01-01",
-      "end": "2026-08-12",
+      "end": "2026-08-31",
       "aggregations": [
         "Month"
       ],
@@ -48,7 +47,7 @@
       "id": "semester-current",
       "label": "Semestre courant",
       "start": "2026-07-01",
-      "end": "2026-08-12",
+      "end": "2026-08-31",
       "aggregations": [
         "Day",
         "Week",
